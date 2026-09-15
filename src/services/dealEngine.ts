@@ -2,6 +2,8 @@ import type { Deal, DealAnalysis, RiskLevel, Verdict } from '../domain/deal';
 import { DEFAULT_PROFIT_ASSUMPTIONS } from '../config/profitAssumptions';
 import { calculateProfit } from './profitEngine';
 
+const clamp = (value: number) => Math.max(0, Math.min(100, value));
+
 export function percentBelow(current: number, reference?: number): number {
   if (!reference || reference <= 0) return 0;
   return Math.max(0, ((reference - current) / reference) * 100);
@@ -48,16 +50,23 @@ export function analyzeDeal(deal: Deal): DealAnalysis {
   const { risk, riskScore } = riskFor(deal, confidence, profit.roiPct);
   const discount = percentBelow(deal.price, deal.previousPrice);
   const stale = freshnessHours(deal.observedAt) > 24 * 3;
-  const score = Math.max(0, Math.min(100, Math.round(
-    marketAdvantagePct * 0.30 + historicalAdvantagePct * 0.20 + Math.max(0, profit.roiPct) * 0.20 +
-    Math.max(0, profit.marginPct) * 0.10 + confidence * 0.10 + (100 - riskScore) * 0.10,
-  )));
+
+  const marketSignal = clamp(marketAdvantagePct * 2.5);
+  const historicalSignal = clamp(historicalAdvantagePct * 2.2);
+  const roiSignal = clamp(Math.max(0, profit.roiPct) * 3);
+  const marginSignal = clamp(Math.max(0, profit.marginPct) * 2.2);
+  const score = Math.round(clamp(
+    marketSignal * 0.30 + historicalSignal * 0.15 + roiSignal * 0.25 +
+    marginSignal * 0.10 + confidence * 0.15 + (100 - riskScore) * 0.05,
+  ));
+
   let verdict: Verdict = 'PASS';
   if (risk === 'critical') verdict = 'HIGH RISK';
-  else if (score >= 90 && profit.roiPct >= 25 && confidence >= 75 && !stale) verdict = 'BUY NOW';
-  else if (score >= 80 && profit.roiPct >= 15 && !stale) verdict = 'STRONG BUY';
-  else if (score >= 65) verdict = 'WATCH';
-  else if (score >= 50) verdict = 'WAIT';
+  else if (score >= 82 && profit.roiPct >= 20 && confidence >= 75 && !stale) verdict = 'BUY NOW';
+  else if (score >= 70 && profit.roiPct >= 15 && confidence >= 70 && !stale) verdict = 'STRONG BUY';
+  else if (score >= 58) verdict = 'WATCH';
+  else if (score >= 45) verdict = 'WAIT';
+
   const reasons = [
     marketAdvantagePct > 0 ? `${marketAdvantagePct.toFixed(0)}% poniżej mediany rynku` : 'brak potwierdzonej przewagi nad medianą rynku',
     historicalAdvantagePct > 0 ? `${historicalAdvantagePct.toFixed(0)}% poniżej mediany 90d` : 'brak wystarczającej przewagi historycznej',
