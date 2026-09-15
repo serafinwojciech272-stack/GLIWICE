@@ -4,22 +4,25 @@
 Private resale intelligence workstation for Wojciech. Primary objective: discover underpriced online products, calculate realistic all-in acquisition cost, estimate resale potential, rank risk-adjusted opportunities and monitor selected deals.
 
 ## Current phase
-Phase 1 — MVP Core / Private Command Center.
+Phase 1.5 — Intelligence Core hardening.
 
 Implemented:
-- Deal domain model
-- deterministic deal scoring
-- market advantage calculation
-- risk engine
-- profit engine
-- percentage marketplace/payment fees
-- transparent default resale cost assumptions
-- source adapter abstraction
+- Deal domain model with optional EAN/SKU/attributes/source identity
+- deterministic deal scoring and risk engine
+- market and historical price advantage
+- corrected percentage-fee break-even calculation
+- transparent profit assumptions
+- source adapter abstraction + centralized source registry
+- source health gating
 - mock source through the real scan pipeline
 - scan engine
 - local auditable AI analyst layer
 - AI system prompt contract
 - market snapshot domain
+- price history statistics: median, min/max, volatility, trend
+- discount authenticity check
+- deterministic product matching: product ID, EAN/SKU-ready model, brand/model, title token similarity
+- confidence score and human-review threshold for uncertain matches
 - portfolio allocation engine
 - private command-center UI
 - radar visualization
@@ -32,7 +35,7 @@ Implemented:
 
 ## Important truth boundary
 Current market data is MOCK. The UI must never present mock observations as live internet prices.
-The next technical milestone is Phase 2: legal real market data adapters + price history persistence.
+The next technical milestone is Phase 2: legal real market data adapters + persistent price history.
 
 ## Cost model
 Default model:
@@ -51,13 +54,13 @@ AI interprets verified/calculated data. It must not invent prices, sellers, hist
 Do NOT deploy to Vercel during normal build runs. Deploy only when the user explicitly asks for a deployment/checkpoint.
 
 ## Next long-run priorities
-1. Real source adapter framework
-2. Source health and freshness
-3. Price history persistence
-4. Product identity matching by EAN/SKU/title/attributes
-5. Real resale market observations
-6. Supabase database dedicated to Extra Szpieg, never the GGA database
-7. Server-side AI provider using the existing AI contract
-8. Alerts and scheduled scans
-9. Mass scanning / queue workers
-10. Advanced arbitrage and opportunity detection
+1. Legal real source adapters with rate limits and explicit source metadata
+2. Persistent price observations and scheduled refreshes
+3. Strong product matching waterfall with EAN/GTIN/SKU/model/attributes and later visual similarity
+4. Real resale-market observations and conservative liquidity estimates
+5. Dedicated Supabase database for Extra Szpieg, never the GGA database
+6. Server-side AI provider using the existing AI contract
+7. Alerts and scheduled scans
+8. Mass scanning / queue workers
+9. Cross-source arbitrage graph and opportunity detection
+10. Portfolio optimization with concentration/risk limits
