@@ -6,9 +6,12 @@ export type Verdict = 'BUY NOW' | 'STRONG BUY' | 'WATCH' | 'WAIT' | 'PASS' | 'HI
 export type Deal = {
   id: string;
   productId: string;
+  ean?: string;
+  sku?: string;
   title: string;
   brand?: string;
   model?: string;
+  attributes?: Record<string, string | number | boolean>;
   store: string;
   category: string;
   price: number;
@@ -20,6 +23,7 @@ export type Deal = {
   condition: ProductCondition;
   availability: DealAvailability;
   sellerRating?: number;
+  sourceId?: string;
   sourceUrl: string;
   observedAt: string;
 };
@@ -27,6 +31,7 @@ export type Deal = {
 export type DealAnalysis = Deal & {
   discountPct: number;
   marketAdvantagePct: number;
+  historicalAdvantagePct: number;
   totalCost: number;
   potentialProfit: number;
   marginPct: number;
