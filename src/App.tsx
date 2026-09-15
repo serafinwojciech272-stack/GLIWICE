@@ -1,68 +1,43 @@
 import { useMemo, useState } from 'react';
-import { Bell, ChevronRight, ExternalLink, Heart, Search, ShieldCheck, SlidersHorizontal, Sparkles, TrendingDown, Zap } from 'lucide-react';
+import { Activity, Bell, BrainCircuit, ChevronRight, ExternalLink, Heart, LayoutDashboard, Radar, Search, Settings2, ShieldCheck, Sparkles, Target, TrendingDown, Wallet, Zap } from 'lucide-react';
 import type { DealAnalysis } from './domain/deal';
 import { mockSource } from './sources/mockSource';
 import { runScan } from './services/scanEngine';
+import { analyzeDealLocally } from './services/ai/localDealAnalyst';
 
 const categories = ['Wszystko', 'Audio', 'Laptopy', 'Smartfony', 'Hobby'];
 const money = (value: number) => `${Math.round(value).toLocaleString('pl-PL')} zł`;
 
 export default function App() {
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('Wszystko');
-  const [watched, setWatched] = useState<string[]>([]);
-  const [deals, setDeals] = useState<DealAnalysis[]>([]);
-  const [selected, setSelected] = useState<DealAnalysis | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [scanInfo, setScanInfo] = useState('Gotowy do skanu');
-
-  const filtered = useMemo(() => deals.filter((d) => {
-    const matchesCategory = category === 'Wszystko' || d.category === category;
-    const haystack = `${d.title} ${d.store} ${d.category} ${d.brand ?? ''}`.toLowerCase();
-    return matchesCategory && haystack.includes(query.toLowerCase());
-  }), [deals, category, query]);
-
-  const runSzpieg = async () => {
-    setScanning(true);
-    setScanInfo('Skanowanie rynku...');
-    try {
-      const result = await runScan([mockSource]);
-      setDeals(result.deals);
-      setScanInfo(`${result.offersFound} ofert • ${result.durationMs} ms • ${result.errors.length ? 'częściowy wynik' : 'źródło OK'}`);
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  const toggleWatch = (id: string) => setWatched((current) => current.includes(id) ? current.filter((x) => x !== id) : [...current, id]);
-
-  return <div className="app">
-    <aside>
-      <div className="brand"><div className="logo">SZ</div><div><b>EXTRA SZPIEG</b><span>AI DEAL INTELLIGENCE</span></div></div>
-      <nav><a className="active"><Sparkles/> Radar okazji</a><a><TrendingDown/> Największe spadki</a><a><Heart/> Obserwowane</a><a><Bell/> Alerty</a></nav>
-      <div className="sideBottom"><ShieldCheck/><span>Silnik analityczny<br/><b>CORE ONLINE</b></span></div>
-    </aside>
-    <main>
-      <header><div><p className="eyebrow">AI DEAL INTELLIGENCE ENGINE</p><h1>Radar okazji</h1><p className="muted">Znajdź cenę, policz zysk, oceń ryzyko.</p></div><button className="scanButton" onClick={runSzpieg} disabled={scanning}><Zap/> {scanning ? 'SZPIEG SKANUJE' : 'URUCHOM SZPIEGA'}</button></header>
-      <section className="scanStatus"><span className={scanning ? 'pulse' : ''}></span>{scanInfo}</section>
-      <section className="search"><Search/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Szukaj produktu, kategorii lub sklepu..."/><button><SlidersHorizontal/> Filtry</button></section>
-      <div className="chips">{categories.map((c) => <button className={category === c ? 'chip activeChip' : 'chip'} onClick={() => setCategory(c)} key={c}>{c}</button>)}</div>
-      <section className="stats"><div><span>Oferty w skanie</span><strong>{deals.length}</strong></div><div><span>Mega okazje</span><strong>{deals.filter((d) => d.score >= 90).length}</strong></div><div><span>Potencjalny zysk</span><strong>{money(deals.reduce((sum, d) => sum + Math.max(0, d.potentialProfit), 0))}</strong></div><div><span>Obserwowane</span><strong>{watched.length}</strong></div></section>
-      <div className="sectionHead"><div><h2>{deals.length ? 'Najlepsze okazje teraz' : 'Uruchom pierwszy skan'}</h2><p className="muted">Każda oferta przechodzi przez cenę, koszt, zysk, ROI, ryzyko i Szpieg Score.</p></div><button className="link" onClick={runSzpieg}>Skanuj ponownie <ChevronRight/></button></div>
-      {deals.length === 0 ? <div className="empty heroEmpty"><Sparkles/><h3>Szpieg czeka na rozkaz</h3><p>Uruchom skan, aby przepuścić oferty przez prawdziwy pipeline analityczny.</p><button className="dealBtn" onClick={runSzpieg}>URUCHOM SZPIEGA</button></div> : <section className="grid">{filtered.map((d) => <article className="card" key={d.id}>
-        <div className="cardTop"><span className="tag">{d.category}</span><button className="heart" onClick={() => toggleWatch(d.id)}><Heart fill={watched.includes(d.id) ? 'currentColor' : 'none'}/></button></div>
-        <div className="productImage"><Sparkles/></div><h3>{d.title}</h3><p className="store">{d.store} · {d.condition}</p>
-        <div className="prices"><strong>{money(d.price)}</strong>{d.previousPrice && <del>{money(d.previousPrice)}</del>}<em>-{d.discountPct}%</em></div>
-        <div className="dealMetrics"><span>ZYSK <b>{money(d.potentialProfit)}</b></span><span>ROI <b>{d.roiPct.toFixed(1)}%</b></span></div>
-        <div className="confidence"><span><ShieldCheck/> Szpieg Score <b>{d.score}/100</b></span><span>Ryzyko <b>{d.risk.toUpperCase()}</b> · {d.confidence}% confidence</span></div>
-        <button className="dealBtn" onClick={() => setSelected(d)}>Analizuj okazję <ChevronRight/></button>
-      </article>)}</section>}
-      {selected && <div className="modalBackdrop" onClick={() => setSelected(null)}><section className="detailPanel" onClick={(e) => e.stopPropagation()}>
-        <div className="detailHeader"><div><p className="eyebrow">SZPIEG ANALYSIS</p><h2>{selected.title}</h2><p className="muted">{selected.store}</p></div><button className="close" onClick={() => setSelected(null)}>×</button></div>
-        <div className="detailGrid"><div><span>CENA ZAKUPU</span><b>{money(selected.price)}</b></div><div><span>RYNEK</span><b>{money(selected.marketMedian ?? selected.price)}</b></div><div><span>POT. ODSPRZEDAŻ</span><b>{money(selected.estimatedResalePrice ?? selected.price)}</b></div><div><span>KOSZT CAŁKOWITY</span><b>{money(selected.totalCost)}</b></div><div><span>ZYSK</span><b>{money(selected.potentialProfit)}</b></div><div><span>ROI</span><b>{selected.roiPct.toFixed(1)}%</b></div></div>
-        <div className="verdict"><strong>{selected.verdict}</strong><span>Score {selected.score}/100 · Confidence {selected.confidence}% · Risk {selected.risk}</span></div><ul>{selected.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
-        <button className="dealBtn" onClick={() => window.open(selected.sourceUrl, '_blank')}><ExternalLink/> Sprawdź źródło</button>
-      </section></div>}
-    </main>
+  const [query, setQuery] = useState(''); const [category, setCategory] = useState('Wszystko');
+  const [watched, setWatched] = useState<string[]>([]); const [deals, setDeals] = useState<DealAnalysis[]>([]);
+  const [selected, setSelected] = useState<DealAnalysis | null>(null); const [scanning, setScanning] = useState(false);
+  const [scanInfo, setScanInfo] = useState('Silnik gotowy. Czekam na skan.'); const [budget, setBudget] = useState(5000);
+  const [minRoi, setMinRoi] = useState(15); const [view, setView] = useState<'radar' | 'portfolio'>('radar');
+  const filtered = useMemo(() => deals.filter(d => (category === 'Wszystko' || d.category === category)).filter(d => `${d.title} ${d.store} ${d.category} ${d.brand ?? ''}`.toLowerCase().includes(query.toLowerCase())).filter(d => d.roiPct >= minRoi).sort((a,b)=>b.score-a.score), [deals,category,query,minRoi]);
+  const best = filtered[0]; const totalPotential = deals.reduce((s,d)=>s+Math.max(0,d.potentialProfit),0);
+  const portfolio = filtered.filter(d=>d.price<=budget).slice(0,6); const portfolioCost=portfolio.reduce((s,d)=>s+d.price,0); const portfolioProfit=portfolio.reduce((s,d)=>s+Math.max(0,d.potentialProfit),0);
+  const runSzpieg = async()=>{setScanning(true);setScanInfo('Łączenie ze źródłami → normalizacja → kalkulacja → ranking...');try{const r=await runScan([mockSource]);setDeals(r.deals);setScanInfo(`${r.offersFound} ofert • ${r.durationMs} ms • ${r.errors.length?'częściowy wynik':'pipeline OK'}`);}finally{setScanning(false);}};
+  const toggleWatch=(id:string)=>setWatched(c=>c.includes(id)?c.filter(x=>x!==id):[...c,id]);
+  return <div className="app"><aside>
+    <div className="brand"><div className="logo"><Radar/></div><div><b>EXTRA SZPIEG</b><span>PRIVATE DEAL INTELLIGENCE</span></div></div><div className="modeLabel">COMMAND CENTER</div>
+    <nav><button className={view==='radar'?'navItem active':'navItem'} onClick={()=>setView('radar')}><LayoutDashboard/> Radar okazji</button><button className="navItem" onClick={runSzpieg}><Zap/> Skanuj rynek</button><button className="navItem"><TrendingDown/> Spadki cen</button><button className="navItem"><Heart/> Obserwowane <i>{watched.length}</i></button><button className="navItem"><Bell/> Alerty <i>0</i></button><button className={view==='portfolio'?'navItem active':'navItem'} onClick={()=>setView('portfolio')}><Wallet/> Profit Lab</button></nav>
+    <div className="navDivider"/><button className="navItem"><BrainCircuit/> AI Analyst</button><button className="navItem"><Settings2/> Ustawienia</button>
+    <div className="sideBottom"><span className="onlineDot"/><span><b>CORE ONLINE</b><small>Deterministic intelligence active</small></span></div>
+  </aside><main>
+    <header className="topbar"><div><div className="eyebrow"><span className="liveDot"/> PRIVATE DEAL OPS · 01</div><h1>{view==='radar'?'Radar okazji':'Profit Lab'}</h1><p className="muted">{view==='radar'?'Nie szukaj promocji. Szukaj przewagi cenowej.':'Policz, co możesz kupić za swój kapitał i jaki potencjał ma koszyk.'}</p></div><div className="topActions"><div className="budgetMini"><Wallet/><span>Budżet <b>{money(budget)}</b></span></div><button className="scanButton" onClick={runSzpieg} disabled={scanning}><Zap/>{scanning?'SZPIEG PRACUJE':'URUCHOM SZPIEGA'}</button></div></header>
+    <section className="scanStatus"><span className={scanning?'pulse':''}/><Activity/><b>{scanning?'LIVE SCAN':'ENGINE READY'}</b><span>{scanInfo}</span><em>PRIVATE BUILD</em></section>
+    {view==='radar'?<>
+      <section className="heroGrid"><div className="heroCommand"><div className="heroGlow"/><div className="heroCopy"><span className="micro">SZPIEG INTELLIGENCE</span><h2>Znajdź coś, czego inni jeszcze nie zauważyli.</h2><p>Jeden skan przepuszcza oferty przez cenę rynkową, koszty, potencjalną odsprzedaż, ROI, ryzyko i Szpieg Score.</p><button onClick={runSzpieg} disabled={scanning}><Zap/>{scanning?'SKANOWANIE...':'SKANUJ RYNEK'}</button></div><div className="radarVisual"><div className="radarRing r1"/><div className="radarRing r2"/><div className="radarRing r3"/><div className="radarSweep"/><div className="radarCore"><Radar/></div><span className="signal s1">+39% ROI</span><span className="signal s2">96 SCORE</span><span className="signal s3">−31% MARKET</span></div></div>
+      <div className="bestDealPanel"><div className="panelLabel"><Target/> CURRENT BEST SIGNAL</div>{best?<><div className="bestScore">{best.score}<small>/100</small></div><h3>{best.title}</h3><p>{best.store} · {best.verdict}</p><div className="bestNumbers"><div><span>BUY</span><b>{money(best.price)}</b></div><div><span>PROFIT</span><b>{money(best.potentialProfit)}</b></div><div><span>ROI</span><b>{best.roiPct.toFixed(1)}%</b></div></div><button className="ghostButton" onClick={()=>setSelected(best)}>Otwórz pełną analizę <ChevronRight/></button></>:<div className="emptyBest"><Sparkles/><b>Brak aktywnego sygnału</b><span>Uruchom pierwszy skan.</span></div>}</div></section>
+      <section className="stats"><div><span>OFERTY W SKANIE</span><strong>{deals.length||'—'}</strong><small>normalizowane</small></div><div><span>MEGA OKAZJE</span><strong>{deals.filter(d=>d.score>=90).length||'—'}</strong><small>score ≥ 90</small></div><div><span>POTENCJALNY ZYSK</span><strong>{deals.length?money(totalPotential):'—'}</strong><small>przed podatkiem / ryzykiem</small></div><div><span>OBSERWOWANE</span><strong>{watched.length}</strong><small>aktywnych watchów</small></div></section>
+      <section className="controlBar"><div className="search"><Search/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Zapytaj Szpiega o produkt, markę, sklep..."/><kbd>⌘ K</kbd></div><div className="roiControl"><span>MIN ROI</span><b>{minRoi}%</b><input type="range" min="0" max="80" value={minRoi} onChange={e=>setMinRoi(Number(e.target.value))}/></div></section><div className="chips">{categories.map(c=><button className={category===c?'chip activeChip':'chip'} onClick={()=>setCategory(c)} key={c}>{c}</button>)}</div>
+      <div className="sectionHead"><div><div className="eyebrow">RANKED SIGNALS</div><h2>Najlepsze okazje</h2><p className="muted">Najpierw przewaga. Potem zysk. Dopiero na końcu marketingowa promocja.</p></div><div className="fresh"><span/>{deals.length?'wyniki aktualnego skanu':'oczekuje na dane'}</div></div>
+      {deals.length===0?<div className="empty heroEmpty"><Radar/><h3>Szpieg czeka na rozkaz</h3><p>To jest prywatne centrum zakupowe. Nie pokazujemy fikcyjnych ofert ani fikcyjnych statystyk.</p><button className="dealBtn" onClick={runSzpieg}>URUCHOM PIERWSZY SKAN <Zap/></button></div>:<section className="dealTable">{filtered.map((d,i)=><article className="dealRow" key={d.id}><div className="rank">{String(i+1).padStart(2,'0')}</div><div className="dealIdentity"><div className="miniProduct"><Sparkles/></div><div><h3>{d.title}</h3><p>{d.store} · {d.category} · {d.condition}</p></div></div><div className="metric"><span>BUY</span><b>{money(d.price)}</b></div><div className="metric"><span>MARKET</span><b>{money(d.marketMedian??d.price)}</b></div><div className="metric profit"><span>PROFIT</span><b>+{money(d.potentialProfit)}</b></div><div className="metric"><span>ROI</span><b>{d.roiPct.toFixed(1)}%</b></div><div className="score"><strong>{d.score}</strong><small>/100</small><span>{d.risk.toUpperCase()}</span></div><button className="watch" onClick={()=>toggleWatch(d.id)}><Heart fill={watched.includes(d.id)?'currentColor':'none'}/></button><button className="rowOpen" onClick={()=>setSelected(d)}><ChevronRight/></button></article>)}</section>}
+    </>:<ProfitLab budget={budget} setBudget={setBudget} portfolio={portfolio} portfolioCost={portfolioCost} portfolioProfit={portfolioProfit}/>}
+    <footer><span><ShieldCheck/> DATA DISCIPLINE: observed ≠ estimated ≠ AI inferred</span><span>EXTRA SZPIEG · PRIVATE BUILD · PHASE 1</span></footer>
+  </main>
+  {selected&&<div className="modalBackdrop" onClick={()=>setSelected(null)}><section className="detailPanel" onClick={e=>e.stopPropagation()}><div className="detailHeader"><div><div className="eyebrow">SZPIEG AI ANALYSIS</div><h2>{selected.title}</h2><p className="muted">{selected.store} · observed {new Date(selected.observedAt).toLocaleString('pl-PL')}</p></div><button className="close" onClick={()=>setSelected(null)}>×</button></div><div className="analysisHero"><div className="bigScore">{selected.score}<small>/100</small></div><div><span className="verdictTag">{analyzeDealLocally(selected).verdict}</span><h3>{analyzeDealLocally(selected).headline}</h3><p>{analyzeDealLocally(selected).explanation}</p></div></div><div className="detailGrid"><div><span>CENA ZAKUPU</span><b>{money(selected.price)}</b></div><div><span>RYNEK</span><b>{money(selected.marketMedian??selected.price)}</b></div><div><span>POT. ODSPRZEDAŻ</span><b>{money(selected.estimatedResalePrice??selected.price)}</b></div><div><span>KOSZT ALL-IN</span><b>{money(selected.totalCost)}</b></div><div><span>ZYSK NETTO*</span><b>{money(selected.potentialProfit)}</b></div><div><span>ROI</span><b>{selected.roiPct.toFixed(1)}%</b></div></div><div className="riskLine"><span>RISK <b>{selected.risk.toUpperCase()}</b></span><span>CONFIDENCE <b>{selected.confidence}%</b></span><span>MARKET EDGE <b>{selected.marketAdvantagePct.toFixed(1)}%</b></span></div><div className="reasonBox"><b>Dlaczego Szpieg?</b><ul>{selected.reasons.map(r=><li key={r}>{r}</li>)}</ul></div><div className="modalActions"><button className="dealBtn" onClick={()=>window.open(selected.sourceUrl,'_blank')}><ExternalLink/> Otwórz ofertę</button><button className="ghostButton" onClick={()=>toggleWatch(selected.id)}><Heart/>{watched.includes(selected.id)?'Usuń z obserwowanych':'Obserwuj cenę'}</button></div></section></div>}
   </div>;
 }
+function ProfitLab({budget,setBudget,portfolio,portfolioCost,portfolioProfit}:{budget:number;setBudget:(v:number)=>void;portfolio:DealAnalysis[];portfolioCost:number;portfolioProfit:number}){const remaining=Math.max(0,budget-portfolioCost);return <section className="profitLab"><div className="labTop"><div><div className="eyebrow">CAPITAL ALLOCATION ENGINE</div><h2>Profit Lab</h2><p className="muted">Wybierz budżet. Szpieg układa hipotetyczny koszyk według Score, ROI i potencjalnego zysku.</p></div><div className="budgetBox"><Wallet/><label>BUDŻET</label><input type="number" min="0" value={budget} onChange={e=>setBudget(Number(e.target.value))}/><span>PLN</span></div></div><div className="labStats"><div><span>KAPITAŁ</span><b>{money(portfolioCost)}</b></div><div><span>POT. ZYSK</span><b>+{money(portfolioProfit)}</b></div><div><span>PORTFOLIO ROI</span><b>{portfolioCost?((portfolioProfit/portfolioCost)*100).toFixed(1):'0.0'}%</b></div><div><span>POZOSTAŁO</span><b>{money(remaining)}</b></div></div><div className="portfolioList">{portfolio.length?portfolio.map((d,i)=><div className="portfolioRow" key={d.id}><span className="pRank">0{i+1}</span><div><b>{d.title}</b><small>{d.store} · Score {d.score}</small></div><strong>{money(d.price)}</strong><em>+{money(d.potentialProfit)}</em><span>{d.roiPct.toFixed(1)}% ROI</span></div>):<div className="empty">Najpierw uruchom skan albo zwiększ budżet.</div>}</div></section>}
