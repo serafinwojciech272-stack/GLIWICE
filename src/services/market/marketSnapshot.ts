@@ -1,16 +1,27 @@
 import type { DealAnalysis } from '../../domain/deal';
 import type { MarketSnapshot, PricePoint } from '../../domain/market';
+import { summarizePriceHistory } from './priceHistory';
+
+const median = (values: number[]) => {
+  const sorted = [...values].filter(Number.isFinite).sort((a, b) => a - b);
+  if (!sorted.length) return 0;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+};
 
 export function buildMarketSnapshot(productId: string, deals: DealAnalysis[], history: PricePoint[] = []): MarketSnapshot {
-  const prices = deals.map(d => d.price).filter(Number.isFinite).sort((a,b)=>a-b);
-  const median = prices.length ? prices[Math.floor(prices.length / 2)] : 0;
+  const prices = deals.map(d => d.price).filter(price => Number.isFinite(price) && price > 0);
+  const historyStats = summarizePriceHistory(history);
+  const allObserved = history.length ? historyStats : { median: median(prices), minimum: Math.min(...prices), maximum: Math.max(...prices), sampleSize: prices.length, volatilityPct: 0, trendPct: 0 };
   return {
     productId,
-    median,
-    minimum: prices[0] ?? 0,
-    maximum: prices[prices.length - 1] ?? 0,
+    median: median(prices),
+    minimum: prices.length ? Math.min(...prices) : 0,
+    maximum: prices.length ? Math.max(...prices) : 0,
     sampleSize: prices.length,
-    historicalMedian90d: history.length ? history.map(x=>x.price).sort((a,b)=>a-b)[Math.floor(history.length/2)] : undefined,
+    historicalMedian90d: historyStats.median || undefined,
+    volatilityPct: historyStats.volatilityPct,
+    trendPct: historyStats.trendPct,
     dataQuality: prices.length >= 5 ? 'high' : prices.length >= 2 ? 'medium' : 'low',
     observations: history,
   };
