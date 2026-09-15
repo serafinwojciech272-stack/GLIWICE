@@ -1,6 +1,6 @@
-import type { Deal } from '../../domain/deal';
+import type { Deal, ProductCondition } from '../../domain/deal';
 
-export type MatchMethod = 'product_id' | 'brand_model' | 'title_tokens' | 'none';
+export type MatchMethod = 'ean_exact' | 'sku_exact' | 'brand_model' | 'title_attributes' | 'title_only' | 'none';
 
 export type ProductMatch = {
   candidateId: string;
@@ -27,35 +27,73 @@ function tokenSimilarity(a: string, b: string): number {
   return common / Math.max(left.size, right.size);
 }
 
+function attributesCompatible(a?: Record<string, string | number | boolean>, b?: Record<string, string | number | boolean>): boolean {
+  if (!a || !b) return true;
+  for (const key of ['storage', 'ram', 'color', 'capacity', 'variant', 'outlet']) {
+    if (key in a && key in b && String(a[key]).toLowerCase() !== String(b[key]).toLowerCase()) return false;
+  }
+  return true;
+}
+
+function conditionCompatible(a: ProductCondition, b: ProductCondition): boolean {
+  if (a === 'unknown' || b === 'unknown') return true;
+  return a === b;
+}
+
 export function matchProduct(source: Deal, candidate: Deal): ProductMatch {
-  if (source.productId === candidate.productId) {
-    return { candidateId: candidate.id, confidence: 100, method: 'product_id', reasons: ['identyczny identyfikator produktu'], needsReview: false };
+  if (source.id === candidate.id) return { candidateId: candidate.id, confidence: 0, method: 'none', reasons: ['ta sama oferta'], needsReview: true };
+
+  const sameEan = !!source.ean && !!candidate.ean && normalize(source.ean) === normalize(candidate.ean);
+  if (sameEan) {
+    const safe = attributesCompatible(source.attributes, candidate.attributes) && conditionCompatible(source.condition, candidate.condition);
+    return {
+      candidateId: candidate.id,
+      confidence: safe ? 99 : 45,
+      method: 'ean_exact',
+      reasons: safe ? ['identyczny EAN/GTIN', 'zgodna konfiguracja'] : ['identyczny EAN, ale konflikt wariantu lub stanu'],
+      needsReview: !safe,
+    };
+  }
+
+  const sameSku = !!source.sku && !!candidate.sku && normalize(source.sku) === normalize(candidate.sku);
+  if (sameSku) {
+    const safe = attributesCompatible(source.attributes, candidate.attributes) && conditionCompatible(source.condition, candidate.condition);
+    return {
+      candidateId: candidate.id,
+      confidence: safe ? 96 : 48,
+      method: 'sku_exact',
+      reasons: safe ? ['identyczne SKU', 'zgodna konfiguracja'] : ['identyczne SKU, ale konflikt wariantu lub stanu'],
+      needsReview: !safe,
+    };
   }
 
   const brandSame = !!source.brand && !!candidate.brand && normalize(source.brand) === normalize(candidate.brand);
   const modelSame = !!source.model && !!candidate.model && normalize(source.model) === normalize(candidate.model);
-  if (brandSame && modelSame) {
-    return { candidateId: candidate.id, confidence: 96, method: 'brand_model', reasons: ['zgodna marka', 'zgodny model'], needsReview: false };
+  const compatible = attributesCompatible(source.attributes, candidate.attributes) && conditionCompatible(source.condition, candidate.condition);
+  if (brandSame && modelSame && compatible) {
+    return { candidateId: candidate.id, confidence: 94, method: 'brand_model', reasons: ['zgodna marka', 'zgodny model', 'brak konfliktu wariantu/stanu'], needsReview: true };
   }
 
   const titleScore = tokenSimilarity(source.title, candidate.title);
-  const confidence = Math.round(Math.min(94, titleScore * 100 + (brandSame ? 8 : 0) + (modelSame ? 12 : 0)));
-  const reasons = [
-    brandSame ? 'zgodna marka' : 'brak pewnej zgodności marki',
-    modelSame ? 'zgodny model' : 'brak pewnej zgodności modelu',
-    `podobieństwo tytułu ${Math.round(titleScore * 100)}%`,
-  ];
+  let confidence = titleScore * 72 + (brandSame ? 10 : 0) + (modelSame ? 18 : 0);
+  if (!compatible) confidence -= 30;
+  confidence = Math.round(Math.max(0, Math.min(93, confidence)));
+  const method: MatchMethod = confidence >= 65 && (brandSame || modelSame) ? 'title_attributes' : confidence >= 55 ? 'title_only' : 'none';
   return {
     candidateId: candidate.id,
     confidence,
-    method: confidence > 0 ? 'title_tokens' : 'none',
-    reasons,
+    method,
+    reasons: [
+      brandSame ? 'zgodna marka' : 'brak zgodności marki',
+      modelSame ? 'zgodny model' : 'brak pewnej zgodności modelu',
+      `podobieństwo tytułu ${Math.round(titleScore * 100)}%`,
+      compatible ? 'brak wykrytego konfliktu wariantu/stanu' : 'wykryty konflikt wariantu lub stanu',
+    ],
     needsReview: confidence < 95,
   };
 }
 
 export function findBestProductMatch(source: Deal, candidates: Deal[]): ProductMatch | null {
-  if (!candidates.length) return null;
   return candidates
     .filter(candidate => candidate.id !== source.id)
     .map(candidate => matchProduct(source, candidate))
