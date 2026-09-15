@@ -1,4 +1,5 @@
 import type { Deal, DealAnalysis, RiskLevel, Verdict } from '../domain/deal';
+import { DEFAULT_PROFIT_ASSUMPTIONS } from '../config/profitAssumptions';
 import { calculateProfit } from './profitEngine';
 
 export function percentBelow(current: number, reference?: number): number {
@@ -8,14 +9,12 @@ export function percentBelow(current: number, reference?: number): number {
 
 function riskFor(deal: Deal, confidence: number, roi: number): { risk: RiskLevel; riskScore: number } {
   let riskScore = 0;
-  if (confidence < 60) riskScore += 30;
-  else if (confidence < 80) riskScore += 15;
+  if (confidence < 60) riskScore += 30; else if (confidence < 80) riskScore += 15;
   if (deal.condition !== 'new') riskScore += 20;
   if (deal.availability === 'limited') riskScore += 5;
   if (deal.availability === 'unknown') riskScore += 15;
   if ((deal.sellerRating ?? 0) > 0 && (deal.sellerRating ?? 0) < 4.5) riskScore += 15;
-  if (roi < 0) riskScore += 35;
-  else if (roi < 10) riskScore += 15;
+  if (roi < 0) riskScore += 35; else if (roi < 10) riskScore += 15;
   const risk: RiskLevel = riskScore >= 70 ? 'critical' : riskScore >= 45 ? 'high' : riskScore >= 20 ? 'medium' : 'low';
   return { risk, riskScore: Math.min(100, riskScore) };
 }
@@ -24,7 +23,15 @@ export function analyzeDeal(deal: Deal): DealAnalysis {
   const marketAdvantagePct = percentBelow(deal.price, deal.marketMedian);
   const historicalAdvantagePct = percentBelow(deal.price, deal.historicalMedian90d);
   const resale = deal.estimatedResalePrice ?? deal.marketMedian ?? deal.previousPrice ?? deal.price;
-  const profit = calculateProfit({ purchasePrice: deal.price, resalePrice: resale, shippingIn: deal.shippingIn });
+  const profit = calculateProfit({
+    purchasePrice: deal.price,
+    resalePrice: resale,
+    shippingIn: deal.shippingIn ?? DEFAULT_PROFIT_ASSUMPTIONS.shippingIn,
+    marketplaceFeePct: DEFAULT_PROFIT_ASSUMPTIONS.marketplaceFeePct,
+    paymentFeePct: DEFAULT_PROFIT_ASSUMPTIONS.paymentFeePct,
+    packagingCost: DEFAULT_PROFIT_ASSUMPTIONS.packagingCost,
+    otherCosts: DEFAULT_PROFIT_ASSUMPTIONS.otherCosts,
+  });
   const confidence = Math.round(Math.min(100, 45 + (deal.marketMedian ? 20 : 0) + (deal.historicalMedian90d ? 15 : 0) + (deal.sellerRating ? 10 : 0) + (deal.estimatedResalePrice ? 10 : 0)));
   const { risk, riskScore } = riskFor(deal, confidence, profit.roiPct);
   const discount = percentBelow(deal.price, deal.previousPrice);
@@ -37,15 +44,12 @@ export function analyzeDeal(deal: Deal): DealAnalysis {
   else if (score >= 80 && profit.roiPct >= 15) verdict = 'STRONG BUY';
   else if (score >= 65) verdict = 'WATCH';
   else if (score >= 50) verdict = 'WAIT';
-
   const reasons = [
     marketAdvantagePct > 0 ? `${marketAdvantagePct.toFixed(0)}% poniżej mediany rynku` : 'brak potwierdzonej przewagi nad medianą rynku',
     historicalAdvantagePct > 0 ? `${historicalAdvantagePct.toFixed(0)}% poniżej mediany 90d` : 'brak wystarczającej przewagi historycznej',
-    profit.profit > 0 ? `potencjalny zysk ${Math.round(profit.profit).toLocaleString('pl-PL')} zł` : 'brak dodatniego potencjalnego zysku',
+    profit.profit > 0 ? `potencjalny zysk ${Math.round(profit.profit).toLocaleString('pl-PL')} zł po kosztach modelu` : 'brak dodatniego potencjalnego zysku po kosztach',
   ];
   return { ...deal, discountPct: discount, marketAdvantagePct, totalCost: profit.totalCost, potentialProfit: profit.profit, marginPct: profit.marginPct, roiPct: profit.roiPct, score, confidence, riskScore, risk, verdict, reasons };
 }
 
-export function rankDeals(deals: Deal[]): DealAnalysis[] {
-  return deals.map(analyzeDeal).sort((a, b) => b.score - a.score);
-}
+export function rankDeals(deals: Deal[]): DealAnalysis[] { return deals.map(analyzeDeal).sort((a, b) => b.score - a.score); }
