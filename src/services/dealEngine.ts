@@ -32,11 +32,15 @@ export function analyzeDeal(deal: Deal): DealAnalysis {
     packagingCost: DEFAULT_PROFIT_ASSUMPTIONS.packagingCost,
     otherCosts: DEFAULT_PROFIT_ASSUMPTIONS.otherCosts,
   });
-  const confidence = Math.round(Math.min(100, 45 + (deal.marketMedian ? 20 : 0) + (deal.historicalMedian90d ? 15 : 0) + (deal.sellerRating ? 10 : 0) + (deal.estimatedResalePrice ? 10 : 0)));
+  const confidence = Math.round(Math.min(100,
+    35 + (deal.ean ? 15 : 0) + (deal.sku ? 10 : 0) + (deal.marketMedian ? 15 : 0) +
+    (deal.historicalMedian90d ? 10 : 0) + (deal.sellerRating ? 10 : 0) + (deal.estimatedResalePrice ? 10 : 0),
+  ));
   const { risk, riskScore } = riskFor(deal, confidence, profit.roiPct);
   const discount = percentBelow(deal.price, deal.previousPrice);
   const score = Math.max(0, Math.min(100, Math.round(
-    marketAdvantagePct * 0.30 + historicalAdvantagePct * 0.20 + Math.max(0, profit.roiPct) * 0.20 + Math.max(0, profit.marginPct) * 0.10 + confidence * 0.10 + (100 - riskScore) * 0.10,
+    marketAdvantagePct * 0.30 + historicalAdvantagePct * 0.20 + Math.max(0, profit.roiPct) * 0.20 +
+    Math.max(0, profit.marginPct) * 0.10 + confidence * 0.10 + (100 - riskScore) * 0.10,
   )));
   let verdict: Verdict = 'PASS';
   if (risk === 'critical') verdict = 'HIGH RISK';
@@ -48,8 +52,27 @@ export function analyzeDeal(deal: Deal): DealAnalysis {
     marketAdvantagePct > 0 ? `${marketAdvantagePct.toFixed(0)}% poniżej mediany rynku` : 'brak potwierdzonej przewagi nad medianą rynku',
     historicalAdvantagePct > 0 ? `${historicalAdvantagePct.toFixed(0)}% poniżej mediany 90d` : 'brak wystarczającej przewagi historycznej',
     profit.profit > 0 ? `potencjalny zysk ${Math.round(profit.profit).toLocaleString('pl-PL')} zł po kosztach modelu` : 'brak dodatniego potencjalnego zysku po kosztach',
+    deal.ean ? 'produkt posiada EAN/GTIN' : deal.sku ? 'produkt posiada SKU' : 'brak twardego identyfikatora produktu',
   ];
-  return { ...deal, discountPct: discount, marketAdvantagePct, totalCost: profit.totalCost, potentialProfit: profit.profit, marginPct: profit.marginPct, roiPct: profit.roiPct, score, confidence, riskScore, risk, verdict, reasons };
+  return {
+    ...deal,
+    sourceId: deal.sourceId ?? 'unknown',
+    discountPct: discount,
+    marketAdvantagePct,
+    historicalAdvantagePct,
+    totalCost: profit.totalCost,
+    potentialProfit: profit.profit,
+    marginPct: profit.marginPct,
+    roiPct: profit.roiPct,
+    score,
+    confidence,
+    riskScore,
+    risk,
+    verdict,
+    reasons,
+  };
 }
 
-export function rankDeals(deals: Deal[]): DealAnalysis[] { return deals.map(analyzeDeal).sort((a, b) => b.score - a.score); }
+export function rankDeals(deals: Deal[]): DealAnalysis[] {
+  return deals.map(analyzeDeal).sort((a, b) => b.score - a.score);
+}
