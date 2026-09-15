@@ -7,14 +7,23 @@ export function percentBelow(current: number, reference?: number): number {
   return Math.max(0, ((reference - current) / reference) * 100);
 }
 
+function freshnessHours(observedAt: string): number {
+  const timestamp = Date.parse(observedAt);
+  return Number.isFinite(timestamp) ? Math.max(0, (Date.now() - timestamp) / 3600000) : Infinity;
+}
+
 function riskFor(deal: Deal, confidence: number, roi: number): { risk: RiskLevel; riskScore: number } {
   let riskScore = 0;
+  const freshness = freshnessHours(deal.observedAt);
   if (confidence < 60) riskScore += 30; else if (confidence < 80) riskScore += 15;
   if (deal.condition !== 'new') riskScore += 20;
   if (deal.availability === 'limited') riskScore += 5;
   if (deal.availability === 'unknown') riskScore += 15;
+  if (deal.availability === 'out_of_stock') riskScore += 35;
   if ((deal.sellerRating ?? 0) > 0 && (deal.sellerRating ?? 0) < 4.5) riskScore += 15;
   if (roi < 0) riskScore += 35; else if (roi < 10) riskScore += 15;
+  if (freshness > 24 * 3) riskScore += 10;
+  if (freshness > 24 * 7) riskScore += 20;
   const risk: RiskLevel = riskScore >= 70 ? 'critical' : riskScore >= 45 ? 'high' : riskScore >= 20 ? 'medium' : 'low';
   return { risk, riskScore: Math.min(100, riskScore) };
 }
@@ -38,14 +47,15 @@ export function analyzeDeal(deal: Deal): DealAnalysis {
   ));
   const { risk, riskScore } = riskFor(deal, confidence, profit.roiPct);
   const discount = percentBelow(deal.price, deal.previousPrice);
+  const stale = freshnessHours(deal.observedAt) > 24 * 3;
   const score = Math.max(0, Math.min(100, Math.round(
     marketAdvantagePct * 0.30 + historicalAdvantagePct * 0.20 + Math.max(0, profit.roiPct) * 0.20 +
     Math.max(0, profit.marginPct) * 0.10 + confidence * 0.10 + (100 - riskScore) * 0.10,
   )));
   let verdict: Verdict = 'PASS';
   if (risk === 'critical') verdict = 'HIGH RISK';
-  else if (score >= 90 && profit.roiPct >= 25 && confidence >= 75) verdict = 'BUY NOW';
-  else if (score >= 80 && profit.roiPct >= 15) verdict = 'STRONG BUY';
+  else if (score >= 90 && profit.roiPct >= 25 && confidence >= 75 && !stale) verdict = 'BUY NOW';
+  else if (score >= 80 && profit.roiPct >= 15 && !stale) verdict = 'STRONG BUY';
   else if (score >= 65) verdict = 'WATCH';
   else if (score >= 50) verdict = 'WAIT';
   const reasons = [
@@ -53,6 +63,7 @@ export function analyzeDeal(deal: Deal): DealAnalysis {
     historicalAdvantagePct > 0 ? `${historicalAdvantagePct.toFixed(0)}% poniżej mediany 90d` : 'brak wystarczającej przewagi historycznej',
     profit.profit > 0 ? `potencjalny zysk ${Math.round(profit.profit).toLocaleString('pl-PL')} zł po kosztach modelu` : 'brak dodatniego potencjalnego zysku po kosztach',
     deal.ean ? 'produkt posiada EAN/GTIN' : deal.sku ? 'produkt posiada SKU' : 'brak twardego identyfikatora produktu',
+    stale ? 'obserwacja jest stara: wymagany świeży skan' : 'świeżość danych akceptowalna',
   ];
   return {
     ...deal,
