@@ -4,25 +4,28 @@
 Private resale intelligence workstation for Wojciech. Primary objective: discover underpriced online products, calculate realistic all-in acquisition cost, estimate resale potential, rank risk-adjusted opportunities and monitor selected deals.
 
 ## Current phase
-Phase 1.5 — Intelligence Core hardening.
+Phase 1.6 — Intelligence Core + Simulation QA + Command Center skeleton.
 
 Implemented:
-- Deal domain model with optional EAN/SKU/attributes/source identity
+- Deal domain model with EAN/SKU/attributes/source identity
 - deterministic deal scoring and risk engine
+- stale-data penalty and stale BUY guardrail
 - market and historical price advantage
 - corrected percentage-fee break-even calculation
 - transparent profit assumptions
 - source adapter abstraction + centralized source registry
 - source health gating
-- mock source through the real scan pipeline
+- 250-offer deterministic Synthetic Market Lab
 - scan engine
+- simulation truth labels and evaluation metrics
 - local auditable AI analyst layer
 - AI system prompt contract
 - market snapshot domain
-- price history statistics: median, min/max, volatility, trend
-- discount authenticity check
-- deterministic product matching: product ID, EAN/SKU-ready model, brand/model, title token similarity
+- price history statistics: median, min/max, volatility, trend, 7d/30d/90d medians and freshness
+- conservative discount authenticity check
+- product matching waterfall with EAN/SKU/brand/model/title/attributes/condition guards
 - confidence score and human-review threshold for uncertain matches
+- opportunity decision engine with risk-adjusted score and marketability proxy
 - portfolio allocation engine
 - private command-center UI
 - radar visualization
@@ -32,10 +35,16 @@ Implemented:
 - deal analysis modal
 - Profit Lab budget planner
 - responsive mobile layout
+- GitHub CI workflow for TypeScript + production build
 
-## Important truth boundary
-Current market data is MOCK. The UI must never present mock observations as live internet prices.
-The next technical milestone is Phase 2: legal real market data adapters + persistent price history.
+## Current simulation truth boundary
+The current scan is synthetic, not live internet data. The UI must never present Synthetic Market Lab observations as retailer prices or real sellers.
+The simulation intentionally includes opportunities, normal offers, fake-discount traps, variant traps, refurbished/outlet items, out-of-stock offers and stale observations.
+
+## Simulation QA objective
+The model should prefer precision over volume. A successful run should surface a small number of high-quality opportunities, reject stale/out-of-stock/variant traps, and keep BUY decisions dependent on evidence, profitability and risk.
+
+`src/services/simulation/evaluationEngine.ts` provides precision, recall, false-positive, trap-signal and top-10 precision metrics.
 
 ## Cost model
 Default model:
@@ -54,13 +63,13 @@ AI interprets verified/calculated data. It must not invent prices, sellers, hist
 Do NOT deploy to Vercel during normal build runs. Deploy only when the user explicitly asks for a deployment/checkpoint.
 
 ## Next long-run priorities
-1. Legal real source adapters with rate limits and explicit source metadata
-2. Persistent price observations and scheduled refreshes
-3. Strong product matching waterfall with EAN/GTIN/SKU/model/attributes and later visual similarity
-4. Real resale-market observations and conservative liquidity estimates
-5. Dedicated Supabase database for Extra Szpieg, never the GGA database
-6. Server-side AI provider using the existing AI contract
-7. Alerts and scheduled scans
-8. Mass scanning / queue workers
-9. Cross-source arbitrage graph and opportunity detection
-10. Portfolio optimization with concentration/risk limits
+1. Run and inspect CI build result; fix any compile/runtime issues before preview checkpoint
+2. Upgrade command-center UI with simulation QA panel, source health, price-history view and matching review queue
+3. Add canonical product groups and cross-store offer deduplication
+4. Add legal real source adapters with rate limits and explicit provenance
+5. Persist price observations and scheduled refreshes
+6. Add real resale-market observations and conservative liquidity estimates
+7. Dedicated Supabase database for Extra Szpieg, never the GGA database
+8. Server-side AI provider using the existing AI contract
+9. Alerts and scheduled scans
+10. Mass scanning / queue workers and cross-source arbitrage graph
