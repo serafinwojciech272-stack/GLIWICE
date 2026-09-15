@@ -18,7 +18,7 @@ export function buildMarketSnapshot(productId: string, deals: DealAnalysis[], hi
     minimum: prices.length ? Math.min(...prices) : 0,
     maximum: prices.length ? Math.max(...prices) : 0,
     sampleSize: prices.length,
-    historicalMedian90d: historyStats.median || undefined,
+    historicalMedian90d: historyStats.median90d || historyStats.median || undefined,
     volatilityPct: historyStats.volatilityPct,
     trendPct: historyStats.trendPct,
     dataQuality: prices.length >= 5 ? 'high' : prices.length >= 2 ? 'medium' : 'low',
