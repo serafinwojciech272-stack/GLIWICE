@@ -12,7 +12,6 @@ const median = (values: number[]) => {
 export function buildMarketSnapshot(productId: string, deals: DealAnalysis[], history: PricePoint[] = []): MarketSnapshot {
   const prices = deals.map(d => d.price).filter(price => Number.isFinite(price) && price > 0);
   const historyStats = summarizePriceHistory(history);
-  const allObserved = history.length ? historyStats : { median: median(prices), minimum: Math.min(...prices), maximum: Math.max(...prices), sampleSize: prices.length, volatilityPct: 0, trendPct: 0 };
   return {
     productId,
     median: median(prices),
