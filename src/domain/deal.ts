@@ -1,4 +1,40 @@
-export type Deal = {id:string;title:string;store:string;price:number;previousPrice:number;category:string;minutesAgo:number;sourceUrl:string;availability:'in_stock'|'limited'|'unknown'};
-export type ScoredDeal = Deal & {discountPct:number;score:number;scoreLabel:'exceptional'|'strong'|'watch'|'weak'};
-export function discountPct(deal:Deal){return Math.max(0,Math.round((1-deal.price/deal.previousPrice)*100));}
-export function scoreDeal(deal:Deal):ScoredDeal{const discount=discountPct(deal);const freshness=Math.max(0,20-Math.min(deal.minutesAgo,20));const stock=deal.availability==='in_stock'?10:deal.availability==='limited'?5:0;const score=Math.min(100,Math.round(discount*2+freshness+stock));const scoreLabel=score>=85?'exceptional':score>=70?'strong':score>=50?'watch':'weak';return{...deal,discountPct:discount,score,scoreLabel};}
+export type DealAvailability = 'in_stock' | 'limited' | 'out_of_stock' | 'unknown';
+export type ProductCondition = 'new' | 'used' | 'refurbished' | 'open_box' | 'unknown';
+export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
+export type Verdict = 'BUY NOW' | 'STRONG BUY' | 'WATCH' | 'WAIT' | 'PASS' | 'HIGH RISK';
+
+export type Deal = {
+  id: string;
+  productId: string;
+  title: string;
+  brand?: string;
+  model?: string;
+  store: string;
+  category: string;
+  price: number;
+  previousPrice?: number;
+  marketMedian?: number;
+  historicalMedian90d?: number;
+  estimatedResalePrice?: number;
+  shippingIn?: number;
+  condition: ProductCondition;
+  availability: DealAvailability;
+  sellerRating?: number;
+  sourceUrl: string;
+  observedAt: string;
+};
+
+export type DealAnalysis = Deal & {
+  discountPct: number;
+  marketAdvantagePct: number;
+  totalCost: number;
+  potentialProfit: number;
+  marginPct: number;
+  roiPct: number;
+  score: number;
+  confidence: number;
+  riskScore: number;
+  risk: RiskLevel;
+  verdict: Verdict;
+  reasons: string[];
+};
