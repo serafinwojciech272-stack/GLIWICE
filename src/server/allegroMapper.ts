@@ -40,7 +40,7 @@ export function mapAllegroOffer(raw: AllegroOffer, observedAt = new Date().toISO
 }
 
 export function mapAllegroListing(payload: Record<string, any>): Deal[] {
-  const rows = Array.isArray(payload.items?.regular) ? payload.items.regular : [];
+  const rows: AllegroOffer[] = Array.isArray(payload.items?.regular) ? payload.items.regular as AllegroOffer[] : [];
   const observedAt = new Date().toISOString();
-  return rows.map(row => mapAllegroOffer(row, observedAt)).filter((deal): deal is Deal => Boolean(deal));
+  return rows.map((row: AllegroOffer) => mapAllegroOffer(row, observedAt)).filter((deal: Deal | null): deal is Deal => Boolean(deal));
 }
