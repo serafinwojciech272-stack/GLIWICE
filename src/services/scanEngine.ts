@@ -15,9 +15,9 @@ export type ScanSummary = {
   completedAt: string;
 };
 
-export async function runScan(adapters: SourceAdapter[]): Promise<ScanSummary> {
+export async function runScan(adapters: SourceAdapter[], query?: string): Promise<ScanSummary> {
   const started = Date.now();
-  const results = await Promise.allSettled(adapters.map(adapter => adapter.scan()));
+  const results = await Promise.allSettled(adapters.map(adapter => adapter.scan(query)));
   const errors: string[] = [];
   const raw = results.flatMap(result => {
     if (result.status === 'fulfilled') {
