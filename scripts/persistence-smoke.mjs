@@ -2,8 +2,8 @@ const store = new Map();
 
 globalThis.localStorage = {
   getItem(key) { return store.has(key) ? store.get(key) : null; },
-  setItem(key, value) { store.set(key, String(value)); },
-  removeItem(key) { store.delete(key); },
+  setItem(key, value) { const serialized = String(value); store.set(key, serialized); this[key] = serialized; },
+  removeItem(key) { store.delete(key); delete this[key]; },
   key(index) { return Array.from(store.keys())[index] ?? null; },
   get length() { return store.size; },
 };
