@@ -1,6 +1,7 @@
 import http from 'node:http';
 const PORT=Number(process.env.PORT||10000);
-const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Allow-Methods':'GET, OPTIONS'};
+const allowedOrigin=env('FRONTEND_ORIGIN')||'*';
+const cors={'Access-Control-Allow-Origin':allowedOrigin,'Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Allow-Methods':'GET, OPTIONS'};
 const env=k=>(process.env[k]||'').trim();
 const providers=[['allegro','Allegro','account',['ALLEGRO_CLIENT_ID','ALLEGRO_CLIENT_SECRET']],['ebay','eBay','live-search',['EBAY_CLIENT_ID','EBAY_CLIENT_SECRET']],['amazon','Amazon','account',['AMAZON_LWA_CLIENT_ID','AMAZON_LWA_CLIENT_SECRET']],['olx','OLX','account',['OLX_CLIENT_ID','OLX_CLIENT_SECRET']],['temu','Temu','account',['TEMU_APP_KEY','TEMU_APP_SECRET']],['ceneo','Ceneo','benchmark',['CENEO_API_KEY']],['erli','ERLI','account',['ERLI_API_KEY']],['empik','Empik','account',['EMPIK_API_KEY']],['kaufland','Kaufland','account',['KAUFLAND_CLIENT_KEY','KAUFLAND_SECRET_KEY']]];
 function health(){return providers.map(([id,name,mode,keys])=>({id,name,mode,configured:keys.every(env),status:keys.every(env)?'configured':'missing-credentials',message:keys.every(env)?'Credentials configured.':'Credentials required in Render environment.'}));}
