@@ -26,6 +26,9 @@ assert(search.status === 200, 'search HTTP ' + search.status);
 assert(search.body?.query === 'iphone', 'search query mismatch');
 assert(Array.isArray(search.body?.results), 'search results missing');
 
+const invalid = await get('/api/marketplaces/search?q=iphone&limit=5&marketplace=__invalid__');
+assert(invalid.status === 400, 'unknown provider should return HTTP 400');
+
 const selected = await get('/api/marketplaces/search?q=iphone&limit=5&marketplace=ebay');
 assert(selected.status === 200, 'provider selection HTTP ' + selected.status);
 assert(selected.body?.query === 'iphone', 'provider selection query mismatch');
@@ -51,5 +54,7 @@ console.log(JSON.stringify({
   providers: providers.body.sources.map(x => ({ id: x.id, configured: x.configured, status: x.status })),
   searchResults: search.body.results.length,
   selectedProvider: selected.body.selectedProvider,
-  selectedProviderResults: selected.body.results.length
+  selectedProviderResults: selected.body.results.length,
+  eBayLive: ebay?.configured === true && selected.body.results.length > 0,
+  eBayBlockedReason: ebay?.configured === true ? null : 'credentials-not-configured'
 }, null, 2));
