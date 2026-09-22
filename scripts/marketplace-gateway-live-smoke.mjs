@@ -1,4 +1,4 @@
-const base = (process.env.MARKETPLACE_GATEWAY_URL || 'https://extra-szpieg-api.onrender.com').replace(/\\/$/, '');
+const base = (process.env.MARKETPLACE_GATEWAY_URL || 'https://extra-szpieg-api.onrender.com').replace(/\/$/, '');
 const requireEbay = process.env.REQUIRE_LIVE_EBAY === 'true';
 
 function assert(condition, message) {
