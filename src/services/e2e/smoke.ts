@@ -3,9 +3,9 @@ import { summarizeEvidence, isActionableEvidence } from '../evidence/provenance'
 import { buildAlerts } from '../alerts/alertEngine';
 import type { DealAnalysis } from '../../domain/deal';
 
-const assert = (condition: unknown, message: string): asserts condition => {
+function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`E2E smoke failed: ${message}`);
-};
+}
 
 export function runCoreSmoke(deal: DealAnalysis): { decision: string; alerts: number; provenance: string } {
   const decision = decideOpportunity(deal);
