@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
     "smoke": "node scripts/smoke.mjs",
-    "smoke:persistence": "node scripts/persistence-smoke.mjs"
+    "smoke:persistence": "node scripts/persistence-smoke.mjs",
+    "smoke:real-source": "node scripts/real-source-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
