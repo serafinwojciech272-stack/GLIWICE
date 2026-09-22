@@ -1,5 +1,5 @@
 import type { MarketplaceHealth } from './marketplaceTypes';
-const env=(key:string)=>Boolean((process.env[key]??'').trim());
+const env=(key:string)=>Boolean((globalThis as unknown as { process?: { env?: Record<string,string|undefined> } }).process?.env?.[key]?.trim());
 export function marketplaceHealth(): MarketplaceHealth[]{
  return [
   {id:'allegro',name:'Allegro',mode:'account',status:env('ALLEGRO_CLIENT_ID') && env('ALLEGRO_CLIENT_SECRET')?'configured':'missing-credentials',configured:env('ALLEGRO_CLIENT_ID') && env('ALLEGRO_CLIENT_SECRET'),message:'Official OAuth/API connector; public marketplace search is not assumed.'},
