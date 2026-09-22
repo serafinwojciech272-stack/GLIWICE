@@ -23,4 +23,5 @@ jobs:
       - name: Production marketplace gateway smoke
         env:
           MARKETPLACE_GATEWAY_URL: https://extra-szpieg-api.onrender.com
+          REQUIRE_LIVE_EBAY: 'true'
         run: node scripts/marketplace-gateway-live-smoke.mjs
