@@ -2,7 +2,7 @@ name: Szpieg CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "fix/extra-szpieg-core-engine-hardening"]
   pull_request:
     branches: [main]
 
