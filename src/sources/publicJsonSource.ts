@@ -24,7 +24,7 @@ function toCondition(value: unknown): Deal['condition'] {
   return 'unknown';
 }
 function normalizeOffer(raw: JsonOffer, sourceId: string, index: number): Deal | null {
-  const id = text(raw.id) || text(raw.offerId) || text(raw.productId) || \`\${sourceId}-\${index + 1}\`;
+  const id = text(raw.id) || text(raw.offerId) || text(raw.productId) || `${sourceId}-${index + 1}`;
   const title = text(raw.title) || text(raw.name) || text(raw.productName);
   const priceValue = raw.price && typeof raw.price === 'object' ? (raw.price as JsonOffer).amount : raw.price;
   const price = finite(priceValue);
@@ -52,12 +52,12 @@ export function createPublicJsonSource(options: PublicJsonSourceOptions): Source
       if (!options.url) return { source: { ...base, health: 'offline', lastScan: new Date().toISOString(), responseTimeMs: Date.now() - started }, deals: [], durationMs: Date.now() - started, errors: ['Real source URL is not configured. Set VITE_REAL_SOURCE_URL.'] };
       try {
         const response = await fetchImpl(options.url, { headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error(\`HTTP \${response.status}\`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json() as unknown;
         const objectPayload = payload && typeof payload === 'object' ? payload as JsonOffer : null;
         const rows: JsonOffer[] = Array.isArray(payload) ? payload : Array.isArray(objectPayload?.deals) ? objectPayload.deals as JsonOffer[] : Array.isArray(objectPayload?.offers) ? objectPayload.offers as JsonOffer[] : [];
         const deals = rows.map((row, index) => normalizeOffer(row, options.id, index)).filter((deal): deal is Deal => Boolean(deal));
-        const errors = deals.length === rows.length ? [] : [\`Skipped \${rows.length - deals.length} invalid offer records.\`];
+        const errors = deals.length === rows.length ? [] : [`Skipped ${rows.length - deals.length} invalid offer records.`];
         return { source: { ...base, health: errors.length ? 'degraded' : 'healthy', lastScan: new Date().toISOString(), responseTimeMs: Date.now() - started }, deals, durationMs: Date.now() - started, errors };
       } catch (error) {
         return { source: { ...base, health: 'offline', lastScan: new Date().toISOString(), responseTimeMs: Date.now() - started }, deals: [], durationMs: Date.now() - started, errors: [error instanceof Error ? error.message : 'Real source request failed'] };
