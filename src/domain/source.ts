@@ -16,9 +16,10 @@ export type ScanResult = {
   deals: Deal[];
   durationMs: number;
   errors: string[];
+  completedAt?: string;
 };
 
 export interface SourceAdapter {
   readonly source: Source;
-  scan(): Promise<ScanResult>;
+  scan(query?: string): Promise<ScanResult>;
 }
