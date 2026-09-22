@@ -20,3 +20,7 @@ jobs:
       - run: npm run smoke:persistence
       - run: npm run smoke:marketplaces
       - run: npm run smoke:marketplace-gateway
+      - name: Production marketplace gateway smoke
+        env:
+          MARKETPLACE_GATEWAY_URL: https://extra-szpieg-api.onrender.com
+        run: node scripts/marketplace-gateway-live-smoke.mjs
