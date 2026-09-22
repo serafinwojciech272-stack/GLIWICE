@@ -10,7 +10,8 @@
     "typecheck": "tsc -b --pretty false",
     "smoke": "node scripts/smoke.mjs",
     "smoke:persistence": "node scripts/persistence-smoke.mjs",
-    "smoke:real-source": "node scripts/real-source-smoke.mjs"
+    "smoke:real-source": "node scripts/real-source-smoke.mjs",
+    "smoke:allegro": "node scripts/allegro-gateway-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
