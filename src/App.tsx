@@ -33,7 +33,7 @@ export default function App() {
   const filtered = useMemo(() => deals.filter(d => (category === 'Wszystko' || d.category === category)).filter(d => `${d.title} ${d.store} ${d.category} ${d.brand ?? ''}`.toLowerCase().includes(query.toLowerCase())).filter(d => d.roiPct >= minRoi).sort((a,b)=>b.score-a.score), [deals,category,query,minRoi]);
   const best = filtered[0]; const totalPotential = deals.reduce((s,d)=>s+Math.max(0,d.potentialProfit),0);
   const portfolio = filtered.filter(d=>d.price<=budget).slice(0,6); const portfolioCost=portfolio.reduce((s,d)=>s+d.price,0); const portfolioProfit=portfolio.reduce((s,d)=>s+Math.max(0,d.potentialProfit),0);
-  const runSzpieg = async()=>{setScanning(true);setScanInfo('Łączenie ze źródłami → normalizacja → kalkulacja → ranking...');try{const r=await runScan(getSourceAdapters());setDeals(r.deals);setScanInfo(`${r.offersFound} ofert • ${r.durationMs} ms • ${r.errors.length?'częściowy wynik':'pipeline OK'}`);}catch(error){setScanInfo(error instanceof Error?error.message:'Skan zakończony błędem.');}finally{setScanning(false);}};
+  const runSzpieg = async()=>{setScanning(true);setScanInfo('Łączenie ze źródłami → normalizacja → kalkulacja → ranking...');try{const r=await runScan(getSourceAdapters(), query);setDeals(r.deals);setScanInfo(`${r.offersFound} ofert • ${r.durationMs} ms • ${r.errors.length?'częściowy wynik':'pipeline OK'}`);}catch(error){setScanInfo(error instanceof Error?error.message:'Skan zakończony błędem.');}finally{setScanning(false);}};
   const toggleWatch=(id:string)=>setWatched(c=>c.includes(id)?c.filter(x=>x!==id):[...c,id]);
   const selectedOpportunity = selected ? decideOpportunity(selected) : null;
   const selectedProvenance = selected ? summarizeEvidence(selected) : null;
