@@ -46,7 +46,7 @@ export function provenanceLabel(status: ProvenanceStatus): string {
 }
 
 export function sourceTruthLabel(sourceType: string): string {
-  return sourceType === 'MOCK' ? 'SIMULATED SOURCE' : 'EXTERNAL SOURCE';
+  return ['MOCK', 'simulation-market'].includes(sourceType) ? 'SIMULATED SOURCE' : 'EXTERNAL SOURCE';
 }
 
 export function isActionableEvidence(deal: DealAnalysis): boolean {
