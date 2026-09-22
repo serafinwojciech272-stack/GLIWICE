@@ -5,11 +5,12 @@ export function createAllegroSource(phrase: string): SourceAdapter {
   const source = { id: 'allegro', name: 'Allegro Sandbox', type: 'API' as const, health: 'degraded' as const };
   return {
     source,
-    async scan(): Promise<ScanResult> {
+    async scan(query?: string): Promise<ScanResult> {
       const started = Date.now();
-      if (!phrase.trim()) return { source: { ...source, health: 'offline', lastScan: new Date().toISOString(), responseTimeMs: Date.now() - started }, deals: [], durationMs: Date.now() - started, errors: ['ALLEGRO_SEARCH_PHRASE is not configured.'] };
+      const effectivePhrase = (query?.trim() || phrase.trim());
+      if (!effectivePhrase) return { source: { ...source, health: 'offline', lastScan: new Date().toISOString(), responseTimeMs: Date.now() - started }, deals: [], durationMs: Date.now() - started, errors: ['Wpisz produkt do wyszukania albo skonfiguruj ALLEGRO_SEARCH_PHRASE.'] };
       try {
-        const response = await fetch('/api/allegro/search?phrase=' + encodeURIComponent(phrase));
+        const response = await fetch('/api/allegro/search?phrase=' + encodeURIComponent(effectivePhrase));
         if (!response.ok) throw new Error('Allegro gateway HTTP ' + response.status);
         const payload = await response.json() as Record<string, any>;
         const deals = mapAllegroListing(payload);
