@@ -14,7 +14,8 @@
     "smoke:real-source": "node scripts/real-source-smoke.mjs",
     "smoke:allegro": "node scripts/allegro-gateway-smoke.mjs",
     "smoke:marketplaces": "node scripts/marketplace-config-smoke.mjs",
-    "smoke:marketplace-gateway": "node scripts/marketplace-gateway-smoke.mjs"
+    "smoke:marketplace-gateway": "node scripts/marketplace-gateway-smoke.mjs",
+    "smoke:core-engine": "node scripts/core-engine-qa.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
