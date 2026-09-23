@@ -18,6 +18,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm run smoke:persistence
+      - run: npm run smoke:core-engine
       - run: npm run smoke:marketplaces
       - run: npm run smoke:marketplace-gateway
       - name: Production marketplace gateway smoke
