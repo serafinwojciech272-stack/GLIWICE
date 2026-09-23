@@ -11,7 +11,7 @@ import { buildAlerts } from './services/alerts/alertEngine';
 import { summarizeEvidence, provenanceLabel, sourceTruthLabel } from './services/evidence/provenance';
 import './visual-master.css';
 
-const categories = ['Wszystko', 'Audio', 'Laptopy', 'Smartfony', 'Hobby'];
+const categories = ['Wszystko', 'Audio', 'Laptopy', 'Smartfony', 'Gaming', 'TV', 'AGD', 'Hobby'];
 const money = (value: number) => `${Math.round(value).toLocaleString('pl-PL')} zł`;
 
 export default function App() {
@@ -20,7 +20,7 @@ export default function App() {
   const [watched, setWatched] = useState<string[]>(initial.watched); const [deals, setDeals] = useState<DealAnalysis[]>(initial.deals);
   const [selected, setSelected] = useState<DealAnalysis | null>(null); const [scanning, setScanning] = useState(false);
   const [scanInfo, setScanInfo] = useState(initial.savedAt ? `Odtworzono zapis z ${new Date(initial.savedAt).toLocaleString('pl-PL')}.` : 'Silnik gotowy. Czekam na skan.'); const [budget, setBudget] = useState(initial.budget);
-  const [minRoi, setMinRoi] = useState(initial.minRoi); const [view, setView] = useState<'radar' | 'portfolio'>('radar');
+  const [minRoi, setMinRoi] = useState(initial.minRoi); const [view, setView] = useState<'radar' | 'portfolio'>('radar'); const [section, setSection] = useState<'all' | 'drops' | 'watched' | 'alerts'>('all');
   useEffect(() => { saveState({ deals, watched, budget, minRoi, savedAt: new Date().toISOString() }); }, [deals, watched, budget, minRoi]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -30,7 +30,7 @@ export default function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-  const filtered = useMemo(() => deals.filter(d => (category === 'Wszystko' || d.category === category)).filter(d => `${d.title} ${d.store} ${d.category} ${d.brand ?? ''}`.toLowerCase().includes(query.toLowerCase())).filter(d => d.roiPct >= minRoi).sort((a,b)=>b.score-a.score), [deals,category,query,minRoi]);
+  const filtered = useMemo(() => deals.filter(d => (category === 'Wszystko' || d.category === category)).filter(d => `${d.title} ${d.store} ${d.category} ${d.brand ?? ''}`.toLowerCase().includes(query.toLowerCase())).filter(d => d.roiPct >= minRoi).filter(d => section === 'all' || (section === 'drops' ? d.discountPct >= 10 : section === 'watched' ? watched.includes(d.id) : buildAlerts(deals).some(a => a.dealId === d.id))).sort((a,b)=>b.score-a.score), [deals,category,query,minRoi,section,watched]);
   const best = filtered[0]; const totalPotential = deals.reduce((s,d)=>s+Math.max(0,d.potentialProfit),0);
   const portfolio = filtered.filter(d=>d.price<=budget).slice(0,6); const portfolioCost=portfolio.reduce((s,d)=>s+d.price,0); const portfolioProfit=portfolio.reduce((s,d)=>s+Math.max(0,d.potentialProfit),0);
   const runSzpieg = async()=>{setScanning(true);setScanInfo('Łączenie ze źródłami → normalizacja → kalkulacja → ranking...');try{const r=await runScan(getSourceAdapters(), query);setDeals(r.deals);setScanInfo(`${r.offersFound} ofert • ${r.durationMs} ms • ${r.errors.length?'częściowy wynik':'pipeline OK'}`);}catch(error){setScanInfo(error instanceof Error?error.message:'Skan zakończony błędem.');}finally{setScanning(false);}};
@@ -39,7 +39,7 @@ export default function App() {
   const selectedProvenance = selected ? summarizeEvidence(selected) : null;
   return <div className="app"><aside>
     <div className="brand"><div className="logo"><Radar/></div><div><b>EXTRA SZPIEG</b><span>PRIVATE DEAL INTELLIGENCE</span></div></div><div className="modeLabel">COMMAND CENTER</div>
-    <nav><button className={view==='radar'?'navItem active':'navItem'} onClick={()=>setView('radar')}><LayoutDashboard/> Radar okazji</button><button className="navItem" onClick={runSzpieg}><Zap/> Skanuj rynek</button><button className="navItem" onClick={()=>{setView('radar');setQuery('');setMinRoi(0);setCategory('Wszystko');}}><TrendingDown/> Spadki cen</button><button className="navItem" onClick={()=>{setView('radar');setQuery('');setMinRoi(0);setCategory('Wszystko');}}><Heart/> Obserwowane <i>{watched.length}</i></button><button className="navItem" onClick={()=>{setView('radar');setMinRoi(15);}}><Bell/> Alerty <i>{buildAlerts(deals).length}</i></button><button className={view==='portfolio'?'navItem active':'navItem'} onClick={()=>setView('portfolio')}><Wallet/> Profit Lab</button></nav>
+    <nav><button className={view==='radar'?'navItem active':'navItem'} onClick={()=>{setView('radar');setSection('all')}}><LayoutDashboard/> Radar okazji</button><button className="navItem" onClick={runSzpieg}><Zap/> Skanuj rynek</button><button className="navItem" onClick={()=>{setView('radar');setSection('drops');setQuery('');setMinRoi(0);setCategory('Wszystko');}}><TrendingDown/> Spadki cen</button><button className="navItem" onClick={()=>{setView('radar');setSection('watched');setQuery('');setMinRoi(0);setCategory('Wszystko');}}><Heart/> Obserwowane <i>{watched.length}</i></button><button className="navItem" onClick={()=>{setView('radar');setSection('alerts');setMinRoi(15);}}><Bell/> Alerty <i>{buildAlerts(deals).length}</i></button><button className={view==='portfolio'?'navItem active':'navItem'} onClick={()=>{setView('portfolio');setSection('all')}}><Wallet/> Profit Lab</button></nav>
     <div className="navDivider"/><button className="navItem" onClick={()=>setScanInfo('AI Analyst: analiza lokalna aktywna. Wyniki są deterministyczne i nie są generowane przez zewnętrzny model.') }><BrainCircuit/> AI Analyst</button><button className="navItem" onClick={()=>setScanInfo('Ustawienia: budżet, minimalny ROI i obserwowane oferty są zapisywane lokalnie w tej przeglądarce.') }><Settings2/> Ustawienia</button>
     <div className="sideBottom"><span className="onlineDot"/><span><b>CORE ONLINE</b><small>Deterministic intelligence active</small></span></div>
   </aside><main>
