@@ -16,7 +16,7 @@ const base = {
 };
 
 const profit = calculateProfit({ purchasePrice: 600, resalePrice: 820, marketplaceFeePct: 8, paymentFeePct: 1.5, packagingCost: 8 });
-assert.equal(profit.totalCost, 686);
+assert.ok(Math.abs(profit.totalCost - 685.9) < 0.001);
 assert.equal(Math.round(profit.profit), 134);
 assert.ok(profit.roiPct > 19);
 
