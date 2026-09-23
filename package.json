@@ -15,7 +15,7 @@
     "smoke:allegro": "node scripts/allegro-gateway-smoke.mjs",
     "smoke:marketplaces": "node scripts/marketplace-config-smoke.mjs",
     "smoke:marketplace-gateway": "node scripts/marketplace-gateway-smoke.mjs",
-    "smoke:core-engine": "node scripts/core-engine-qa.mjs"
+    "smoke:core-engine": "tsx scripts/core-engine-qa.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "@types/react-dom": "latest",
+    "tsx": "latest"
   }
 }
