@@ -30,13 +30,14 @@ export default function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-  const filtered = useMemo(() => deals.filter(d => (category === 'Wszystko' || d.category === category)).filter(d => `${d.title} ${d.store} ${d.category} ${d.brand ?? ''}`.toLowerCase().includes(query.toLowerCase())).filter(d => d.roiPct >= minRoi).filter(d => section === 'all' || (section === 'drops' ? d.discountPct >= 10 : section === 'watched' ? watched.includes(d.id) : buildAlerts(deals).some(a => a.dealId === d.id))).sort((a,b)=>b.score-a.score), [deals,category,query,minRoi,section,watched]);
+  const alertIds = useMemo(() => new Set(buildAlerts(deals).map(a => a.dealId)), [deals]);
+  const alertCount = alertIds.size;
+  const filtered = useMemo(() => deals.filter(d => (category === 'Wszystko' || d.category === category)).filter(d => `${d.title} ${d.store} ${d.category} ${d.brand ?? ''}`.toLowerCase().includes(query.toLowerCase())).filter(d => d.roiPct >= minRoi).filter(d => section === 'all' || (section === 'drops' ? d.discountPct >= 10 : section === 'watched' ? watched.includes(d.id) : alertIds.has(d.id))).sort((a,b)=>b.score-a.score), [deals,category,query,minRoi,section,watched,alertIds]);
   const best = filtered[0]; const totalPotential = deals.reduce((s,d)=>s+Math.max(0,d.potentialProfit),0);
   const portfolio = filtered.filter(d=>Number.isFinite(d.price)&&d.price>0&&d.price<=Math.max(0,budget)).slice(0,6); const portfolioCost=portfolio.reduce((s,d)=>s+d.price,0); const portfolioProfit=portfolio.reduce((s,d)=>s+Math.max(0,d.potentialProfit),0);
   const runSzpieg = async()=>{setScanning(true);setScanInfo('Łączenie ze źródłami → normalizacja → kalkulacja → ranking...');try{const r=await runScan(getSourceAdapters(), query);setDeals(r.deals);setScanInfo(`${r.offersFound} ofert • ${r.durationMs} ms • ${r.errors.length?'częściowy wynik':'pipeline OK'}`);}catch(error){setScanInfo(error instanceof Error?error.message:'Skan zakończony błędem.');}finally{setScanning(false);}};
   const toggleWatch=(id:string)=>setWatched(c=>c.includes(id)?c.filter(x=>x!==id):[...c,id]);
   const selectedOpportunity = selected ? decideOpportunity(selected) : null;
-  const alertCount = useMemo(() => buildAlerts(deals).length, [deals]);
   const selectedProvenance = selected ? summarizeEvidence(selected) : null;
   return <div className="app"><aside>
     <div className="brand"><div className="logo"><Radar/></div><div><b>EXTRA SZPIEG</b><span>PRIVATE DEAL INTELLIGENCE</span></div></div><div className="modeLabel">COMMAND CENTER</div>
