@@ -15,7 +15,9 @@
     "smoke:allegro": "node scripts/allegro-gateway-smoke.mjs",
     "smoke:marketplaces": "node scripts/marketplace-config-smoke.mjs",
     "smoke:marketplace-gateway": "node scripts/marketplace-gateway-smoke.mjs",
-    "smoke:core-engine": "tsx scripts/core-engine-qa.mjs"
+    "smoke:core-engine": "tsx scripts/core-engine-qa.mjs",
+    "smoke:marketplace-contract": "tsx scripts/marketplace-gateway-contract-test.mjs",
+    "smoke:ebay-mapper": "node scripts/ebay-mapper-qa.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
