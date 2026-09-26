@@ -18,8 +18,8 @@ function redact(value) {
   return out.slice(0, 240);
 }
 
-const allowedOrigin = env('FRONTEND_ORIGIN') || '*';
-const cors = { 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Max-Age': '600', 'Vary': 'Origin' };
+const allowedOrigin = env('FRONTEND_ORIGIN') || 'https://extra-szpieg-okazji.vercel.app';
+const cors = { 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Max-Age': '600', 'Vary': 'Origin' };
 const security = { 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer', 'Permissions-Policy': 'camera=(), microphone=(), geolocation=()', 'Cache-Control': 'no-store' };
 const jsonHeaders = { 'Content-Type': 'application/json; charset=utf-8', ...cors, ...security };
 
@@ -83,6 +83,70 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (u.pathname === '/health') return json(res, 200, { ok: true, service: 'extra-szpieg-api', time: new Date().toISOString() });
+
+    if (u.pathname === '/api/allegro/oauth') {
+      const action = (u.searchParams.get('action') || 'authorize').trim();
+      const clientId = env('ALLEGRO_CLIENT_ID');
+      const clientSecret = env('ALLEGRO_CLIENT_SECRET');
+      const redirectUri = env('ALLEGRO_REDIRECT_URI') || (new URL('/api/allegro/oauth?action=callback', 'https://' + (req.headers.host || 'extra-szpieg-api.onrender.com'))).toString();
+      const sessionSecret = env('ALLEGRO_SESSION_SECRET');
+      if (!clientId || !clientSecret || !redirectUri || !sessionSecret) return json(res, 503, { error: 'allegro_oauth_not_configured' });
+
+      if (action === 'authorize') {
+        const state = crypto.randomBytes(24).toString('base64url');
+        const returnTo = u.searchParams.get('returnTo') || allowedOrigin;
+        if (!/^https:\/\/extra-szpieg-okazji(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(returnTo) && returnTo !== allowedOrigin) {
+          return json(res, 400, { error: 'invalid_return_origin' });
+        }
+        res.setHeader('Set-Cookie', [
+          'allegro_oauth_state=' + encodeURIComponent(state) + '; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=600',
+          'allegro_oauth_return=' + encodeURIComponent(returnTo) + '; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=600',
+        ]);
+        const authBase = env('ALLEGRO_ENVIRONMENT') === 'production' ? 'https://allegro.pl/auth/oauth' : 'https://allegro.pl.allegrosandbox.pl/auth/oauth';
+        const authUrl = new URL(authBase + '/authorize');
+        authUrl.searchParams.set('response_type', 'code');
+        authUrl.searchParams.set('client_id', clientId);
+        authUrl.searchParams.set('redirect_uri', redirectUri);
+        authUrl.searchParams.set('state', state);
+        authUrl.searchParams.set('scope', 'allegro_api');
+        res.writeHead(302, { Location: authUrl.toString(), ...security });
+        return res.end();
+      }
+
+      if (action === 'callback') {
+        const code = (u.searchParams.get('code') || '').trim();
+        const returnedState = (u.searchParams.get('state') || '').trim();
+        const cookies = Object.fromEntries(String(req.headers.cookie || '').split(';').map(x => x.trim().split('=')).filter(x => x.length === 2).map(([k,v]) => [k, decodeURIComponent(v)]));
+        if (!code || !returnedState || cookies.allegro_oauth_state !== returnedState) return json(res, 400, { error: 'invalid_oauth_state_or_code' });
+
+        const authBase = env('ALLEGRO_ENVIRONMENT') === 'production' ? 'https://allegro.pl/auth/oauth' : 'https://allegro.pl.allegrosandbox.pl/auth/oauth';
+        const basic = Buffer.from(clientId + ':' + clientSecret).toString('base64');
+        const tokenResponse = await fetch(authBase + '/token', {
+          method: 'POST',
+          headers: { Authorization: 'Basic ' + basic, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: redirectUri }),
+        });
+        if (!tokenResponse.ok) return json(res, tokenResponse.status, { error: 'allegro_token_exchange_failed', upstreamStatus: tokenResponse.status });
+
+        const token = await tokenResponse.json();
+        const { sealSession } = await import('./allegroSession.mjs');
+        const session = sealSession(JSON.stringify({
+          accessToken: token.access_token,
+          refreshToken: token.refresh_token ?? null,
+          expiresAt: Date.now() + Number(token.expires_in ?? 43200) * 1000,
+        }), sessionSecret);
+        const returnTo = cookies.allegro_oauth_return || allowedOrigin;
+        res.setHeader('Set-Cookie', [
+          'allegro_session=' + encodeURIComponent(session) + '; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=2592000',
+          'allegro_oauth_state=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0',
+          'allegro_oauth_return=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0',
+        ]);
+        res.writeHead(302, { Location: returnTo + '/?allegro=connected', ...security });
+        return res.end();
+      }
+
+      return json(res, 400, { error: 'unsupported_action' });
+    }
 
     if (u.pathname === '/api/marketplaces/health') return json(res, 200, { sources: healthFor(req), generatedAt: new Date().toISOString() });
 
