@@ -1,19 +1,8 @@
 import crypto from 'node:crypto';
+import { sealSession, parseCookies, sessionSecret } from '../../server/allegroSession.mjs';
 
 const AUTH_BASE = process.env.ALLEGRO_ENVIRONMENT === 'production' ? 'https://allegro.pl/auth/oauth' : 'https://allegro.pl.allegrosandbox.pl/auth/oauth';
-const secret = () => process.env.ALLEGRO_SESSION_SECRET || '';
-
-function seal(value) {
-  const key = crypto.createHash('sha256').update(secret()).digest();
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  const encrypted = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
-  return [iv, cipher.getAuthTag(), encrypted].map(x => x.toString('base64url')).join('.');
-}
-
-function parseCookies(header = '') {
-  return Object.fromEntries(header.split(';').map(x => x.trim().split('=' )).filter(x => x.length === 2).map(([k,v]) => [k, decodeURIComponent(v)]));
-}
+const secret = sessionSecret;
 
 export default async function handler(req, res) {
   const clientId = process.env.ALLEGRO_CLIENT_ID;
@@ -51,7 +40,7 @@ export default async function handler(req, res) {
   if (!response.ok) return res.status(response.status).send(await response.text());
 
   const token = await response.json();
-  const session = seal(JSON.stringify({ accessToken: token.access_token, refreshToken: token.refresh_token ?? null, expiresAt: Date.now() + Number(token.expires_in ?? 43200) * 1000 }));
+  const session = sealSession(JSON.stringify({ accessToken: token.access_token, refreshToken: token.refresh_token ?? null, expiresAt: Date.now() + Number(token.expires_in ?? 43200) * 1000 }));
   res.setHeader('Set-Cookie', [
     `allegro_session=${session}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`,
     'allegro_oauth_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0',

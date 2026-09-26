@@ -30,17 +30,20 @@ try{
   assert(providers.status===200,'marketplace health HTTP '+providers.status);
   assert(Array.isArray(providers.body?.sources),'marketplace health sources missing');
   assert(providers.body.sources.length===9,'expected 9 marketplace providers');
+  assert(providers.body.sources.every(x=>typeof x.enabled==='boolean'),'provider enabled flag missing');
 
   const search=await get('/api/marketplaces/search?q=iphone&limit=5');
   assert(search.status===200,'search HTTP '+search.status);
   assert(search.body?.query==='iphone','search query mismatch');
   assert(Array.isArray(search.body?.results),'search results missing');
   assert(Array.isArray(search.body?.sources),'search sources missing');
+  assert(Array.isArray(search.body?.providers),'per-provider result array missing');
 
   const selected=await get('/api/marketplaces/search?q=iphone&limit=5&marketplace=ebay');
   assert(selected.status===200,'provider selection HTTP '+selected.status);
   assert(selected.body?.query==='iphone','provider selection query mismatch');
   assert(Array.isArray(selected.body?.results),'provider selection results missing');
+  assert(selected.body?.selectedProvider==='ebay','selected provider mismatch');
 
   console.log('MARKETPLACE GATEWAY SMOKE: PASS');
   console.log(JSON.stringify({

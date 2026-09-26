@@ -1,5 +1,4 @@
 const base = (process.env.MARKETPLACE_GATEWAY_URL || 'https://extra-szpieg-api.onrender.com').replace(/\/$/, '');
-const requireEbay = process.env.REQUIRE_LIVE_EBAY === 'true';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -35,26 +34,20 @@ assert(selected.body?.query === 'iphone', 'provider selection query mismatch');
 assert(selected.body?.selectedProvider === 'ebay', 'selected provider mismatch');
 assert(Array.isArray(selected.body?.results), 'provider selection results missing');
 
+// eBay is disabled by product policy: selecting it must degrade gracefully, never 5xx.
 const ebay = providers.body.sources.find(x => x.id === 'ebay');
-if (requireEbay) {
-  assert(ebay?.configured === true, 'eBay credentials are not configured');
-  assert(selected.body.results.length > 0, 'eBay live search returned zero results');
-  console.log('PRODUCTION EBAY CONNECTOR: PASS');
-} else if (ebay?.configured === true) {
-  assert(selected.body.results.length > 0, 'configured eBay connector returned zero results');
-  console.log('PRODUCTION EBAY CONNECTOR: PASS');
-} else {
-  console.log('PRODUCTION EBAY CONNECTOR: BLOCKED — credentials not configured');
-}
+assert(ebay?.status === 'disabled', 'eBay must report status "disabled"');
+assert(ebay?.enabled === false, 'eBay must report enabled=false');
+assert(selected.status === 200, 'disabled eBay selection must not fail the gateway');
+console.log('PRODUCTION EBAY PROVIDER: DISABLED (by product policy) — gateway healthy');
 
 console.log('PRODUCTION MARKETPLACE GATEWAY SMOKE: PASS');
 console.log(JSON.stringify({
   gateway: base,
   health: true,
-  providers: providers.body.sources.map(x => ({ id: x.id, configured: x.configured, status: x.status })),
+  providers: providers.body.sources.map(x => ({ id: x.id, enabled: x.enabled, configured: x.configured, status: x.status })),
   searchResults: search.body.results.length,
   selectedProvider: selected.body.selectedProvider,
   selectedProviderResults: selected.body.results.length,
-  eBayLive: ebay?.configured === true && selected.body.results.length > 0,
-  eBayBlockedReason: ebay?.configured === true ? null : 'credentials-not-configured'
+  eBayDisabled: ebay?.status === 'disabled'
 }, null, 2));

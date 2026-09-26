@@ -1,18 +1,18 @@
-export type AllegroEnvironment = 'sandbox' | 'production';
+import {
+  ALLEGRO_ENDPOINTS,
+  endpointsFor,
+  fetchOffersListing,
+} from '../../server/allegroApi.mjs';
+import type { AllegroEnvironment } from '../../server/allegroApi.mjs';
+
+export type { AllegroEnvironment };
 
 type TokenResponse = { access_token: string; token_type: string; expires_in: number; refresh_token?: string; scope?: string };
 type GatewayConfig = { environment: AllegroEnvironment; clientId: string; clientSecret: string; redirectUri: string; fetchImpl?: typeof fetch };
 
-const endpoints = {
-  sandbox: { api: 'https://api.allegro.pl.allegrosandbox.pl', auth: 'https://allegro.pl.allegrosandbox.pl/auth/oauth' },
-  production: { api: 'https://api.allegro.pl', auth: 'https://allegro.pl/auth/oauth' },
-} as const;
-
-const jsonHeaders = { Accept: 'application/vnd.allegro.public.v1+json' };
-
 export function createAllegroGateway(config: GatewayConfig) {
   const fetchImpl = config.fetchImpl ?? fetch;
-  const endpoint = endpoints[config.environment];
+  const endpoint = endpointsFor(config.environment);
 
   const basicAuth = () => 'Basic ' + btoa(config.clientId + ':' + config.clientSecret);
 
@@ -54,16 +54,11 @@ export function createAllegroGateway(config: GatewayConfig) {
     },
 
     async searchOffers(accessToken: string, phrase: string, limit = 100) {
-      const url = new URL(endpoint.api + '/offers/listing');
-      url.searchParams.set('phrase', phrase);
-      url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
-      const response = await fetchImpl(url, {
-        headers: { ...jsonHeaders, Authorization: 'Bearer ' + accessToken, 'Accept-Language': 'pl-PL' },
-      });
+      const response = await fetchOffersListing({ environment: config.environment, accessToken, phrase, limit, fetchImpl });
       if (!response.ok) throw new Error('Allegro offer search failed: HTTP ' + response.status);
       return response.json();
     },
   };
 }
 
-export { endpoints as ALLEGRO_ENDPOINTS };
+export { ALLEGRO_ENDPOINTS };
