@@ -20,7 +20,8 @@
     "smoke:ebay-mapper": "node scripts/ebay-mapper-qa.mjs",
     "smoke:providers": "node scripts/marketplace-provider-architecture-test.mjs",
     "smoke:allegro-integration": "node scripts/allegro-gateway-integration-test.mjs",
-    "smoke:allegro-consolidation": "node scripts/allegro-consolidation-test.mjs"
+    "smoke:allegro-consolidation": "node scripts/allegro-consolidation-test.mjs",
+    "smoke:action-state": "tsx scripts/action-state-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
