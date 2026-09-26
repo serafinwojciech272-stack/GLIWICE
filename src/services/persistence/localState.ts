@@ -1,5 +1,5 @@
 import type { DealAnalysis } from '../../domain/deal';
-import type { DealActionState } from '../decision/actionState';
+import type { DealActionState } from '../decision/actionState.js';
 import { isDealActionState } from '../decision/actionState';
 
 const PREFIX = 'extra-szpieg:v2:';
