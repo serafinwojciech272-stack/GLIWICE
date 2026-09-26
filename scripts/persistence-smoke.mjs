@@ -20,6 +20,7 @@ const state = {
   ...emptyState,
   deals: [deal],
   watched: [deal.id],
+  actions: { [deal.id]: 'BUY' },
   budget: 7777,
   minRoi: 27,
   savedAt: '2026-09-22T10:00:00.000Z',
@@ -30,6 +31,7 @@ const restored = loadState();
 
 if (restored.deals.length !== 1 || restored.deals[0].id !== deal.id) throw new Error('deals did not persist');
 if (restored.watched.length !== 1 || restored.watched[0] !== deal.id) throw new Error('watchlist did not persist');
+if (restored.actions[deal.id] !== 'BUY') throw new Error('deal action did not persist');
 if (restored.budget !== 7777 || restored.minRoi !== 27) throw new Error('settings did not persist');
 if (restored.savedAt !== state.savedAt) throw new Error('savedAt did not persist');
 
