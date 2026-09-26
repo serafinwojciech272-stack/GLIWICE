@@ -2,6 +2,8 @@ export type DealAvailability = 'in_stock' | 'limited' | 'out_of_stock' | 'unknow
 export type ProductCondition = 'new' | 'used' | 'refurbished' | 'open_box' | 'unknown';
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 export type Verdict = 'BUY NOW' | 'STRONG BUY' | 'WATCH' | 'WAIT' | 'PASS' | 'HIGH RISK';
+export type EvidenceKind = 'observed' | 'calculated' | 'estimated' | 'ai_inferred';
+export type DealEvidence = { kind: EvidenceKind; label: string; value: string; sourceId?: string; confidence?: number; };
 
 export type Deal = {
   id: string;
@@ -42,4 +44,5 @@ export type DealAnalysis = Deal & {
   risk: RiskLevel;
   verdict: Verdict;
   reasons: string[];
+  evidence: DealEvidence[];
 };
