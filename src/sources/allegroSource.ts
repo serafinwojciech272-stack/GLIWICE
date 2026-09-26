@@ -1,5 +1,5 @@
 import type { ScanResult, SourceAdapter } from '../domain/source';
-import { mapAllegroListing } from '../server/allegroMapper';
+import type { Deal } from '../domain/deal';
 
 export function createAllegroSource(phrase: string): SourceAdapter {
   const source = { id: 'allegro', name: 'Allegro Sandbox', type: 'API' as const, health: 'degraded' as const };
@@ -15,7 +15,7 @@ export function createAllegroSource(phrase: string): SourceAdapter {
         if (!response.ok) throw new Error('Allegro gateway HTTP ' + response.status);
         const payload = await response.json() as Record<string, any>;
         if (typeof payload.message === 'string' && (!Array.isArray(payload.results) || payload.results.length === 0)) throw new Error(payload.message);
-        const deals = Array.isArray(payload.results) ? mapAllegroListing({ offers: payload.results }) : mapAllegroListing(payload);
+        const deals = Array.isArray(payload.results) ? payload.results as Deal[] : [];
         return { source: { ...source, health: 'healthy', lastScan: new Date().toISOString(), responseTimeMs: Date.now() - started }, deals, durationMs: Date.now() - started, errors: [] };
       } catch (error) {
         return { source: { ...source, health: 'offline', lastScan: new Date().toISOString(), responseTimeMs: Date.now() - started }, deals: [], durationMs: Date.now() - started, errors: [error instanceof Error ? error.message : 'Allegro source failed'] };
