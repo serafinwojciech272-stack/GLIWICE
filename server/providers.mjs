@@ -119,7 +119,7 @@ export const PROVIDER_IDS = new Set(PROVIDERS.map(p => p.id));
 export const SECRET_KEYS = [...new Set(PROVIDERS.flatMap(p => p.keys))];
 
 export function providerCredentialsPresent(provider) {
-  return provider.keys.length > 0 && provider.keys.every(env);
+  return provider.keys.length === 0 || provider.keys.every(env);
 }
 
 export function providerEnabled(provider) {
