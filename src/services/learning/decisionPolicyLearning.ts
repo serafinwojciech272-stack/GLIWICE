@@ -1,35 +1,30 @@
 import type { DealAnalysis } from '../../domain/deal';
 
 export type PolicyOutcome = 'SUCCESS' | 'FAILURE' | 'UNRESOLVED';
-
 export type DecisionOutcome = {
   id: string; dealId: string; decision: 'BUY'|'WATCH'|'PASS'; outcome: PolicyOutcome;
   realizedRoiPct: number|null; observedAt: string; reason: string;
   category?: string; sourceId?: string; risk?: DealAnalysis['risk']; expectedRoiPct?: number;
 };
-
-export type PolicyMemorySlice = {
-  key: string; sampleSize: number; successRate: number|null;
-  recentSuccessRate: number|null; avgRealizedRoiPct: number|null;
-};
-
+export type PolicyMemorySlice = { key:string; sampleSize:number; successRate:number|null; recentSuccessRate:number|null; avgRealizedRoiPct:number|null };
 export type PolicyMemory = {
-  version: 'm9.9-cross-deal-memory-v1';
-  global: PolicyMemorySlice; byCategory: PolicyMemorySlice[];
-  bySource: PolicyMemorySlice[]; byDecision: PolicyMemorySlice[];
-  transferConfidence: number; rationale: string[];
+  version:'m9.9-cross-deal-memory-v1'; global:PolicyMemorySlice; byCategory:PolicyMemorySlice[];
+  bySource:PolicyMemorySlice[]; byDecision:PolicyMemorySlice[]; transferConfidence:number; rationale:string[];
 };
-
+export type PolicyArbitration = {
+  version:'m10.0-contextual-policy-arbitration-v1'; score:number; confidence:number;
+  cohorts:string[]; sampleSize:number; successRate:number|null; actionDelta:number;
+  riskDelta:number; rationale:string[];
+};
 export type AdaptivePolicy = {
-  version: 'm9.8-policy-learning-v1'; actionThreshold:number; evidenceThreshold:number; roiThreshold:number;
+  version:'m9.8-policy-learning-v1'; actionThreshold:number; evidenceThreshold:number; roiThreshold:number;
   riskCeiling:'low'|'medium'|'high'; confidenceThreshold:number; explorationRate:number;
   sampleSize:number; successRate:number|null; recentSuccessRate:number|null;
-  calibration:'NO_DATA'|'EARLY'|'LEARNING'|'STABLE'; rationale:string[]; memory?:PolicyMemory;
+  calibration:'NO_DATA'|'EARLY'|'LEARNING'|'STABLE'; rationale:string[]; memory?:PolicyMemory; arbitration?:PolicyArbitration;
 };
 
 const clamp=(n:number,min=0,max=100)=>Math.max(min,Math.min(max,n));
 const resolved=(o:DecisionOutcome[])=>o.filter(x=>x.outcome!=='UNRESOLVED');
-
 function makeSlice(key:string, items:DecisionOutcome[]):PolicyMemorySlice {
   const r=resolved(items), wins=r.filter(o=>o.outcome==='SUCCESS').length, recent=r.slice(-10);
   const rois=r.map(o=>o.realizedRoiPct).filter((v):v is number=>typeof v==='number'&&Number.isFinite(v));
@@ -41,7 +36,6 @@ function group(o:DecisionOutcome[], field:'category'|'sourceId'|'decision'):Poli
   const keys=[...new Set(o.map(x=>x[field]).filter((v):v is string=>typeof v==='string'&&v.length>0))];
   return keys.map(k=>makeSlice(k,o.filter(x=>x[field]===k))).sort((a,b)=>b.sampleSize-a.sampleSize);
 }
-
 export function buildPolicyMemory(outcomes:DecisionOutcome[]=[]):PolicyMemory {
   const r=resolved(outcomes), byCategory=group(outcomes,'category'), bySource=group(outcomes,'sourceId'), byDecision=group(outcomes,'decision');
   const transferSamples=byCategory.concat(bySource).filter(s=>s.sampleSize>=3).length;
@@ -51,6 +45,29 @@ export function buildPolicyMemory(outcomes:DecisionOutcome[]=[]):PolicyMemory {
   else rationale.push(`Pamięć agreguje ${r.length} outcomeów oraz ${byCategory.length} kategorii i ${bySource.length} źródeł.`);
   if(transferSamples) rationale.push(`Transfer wiedzy aktywny dla ${transferSamples} kohort z co najmniej 3 obserwacjami.`);
   return {version:'m9.9-cross-deal-memory-v1',global:makeSlice('GLOBAL',outcomes),byCategory,bySource,byDecision,transferConfidence,rationale};
+}
+
+export function arbitratePolicyContext(input:{deal:DealAnalysis; outcomes?:DecisionOutcome[]; memory?:PolicyMemory}):PolicyArbitration {
+  const memory=input.memory??buildPolicyMemory(input.outcomes??[]);
+  const cohorts:PolicyMemorySlice[]=[];
+  const category=memory.byCategory.find(x=>x.key===input.deal.category);
+  const source=memory.bySource.find(x=>x.key===input.deal.sourceId);
+  const global=memory.global;
+  if(category) cohorts.push(category); if(source) cohorts.push(source); if(global.sampleSize>=3) cohorts.push(global);
+  const weighted=cohorts.map((c,i)=>({c,w:(c.sampleSize/(c.sampleSize+5))*(i<2?1.25:0.7)}));
+  const total=weighted.reduce((a,x)=>a+x.w,0);
+  const successRate=total?weighted.reduce((a,x)=>a+(x.c.successRate??.5)*x.w,0)/total:null;
+  const sampleSize=cohorts.reduce((a,c)=>a+c.sampleSize,0);
+  const score=successRate===null?50:Math.round(successRate*100);
+  const confidence=clamp(Math.round(Math.min(1,total/2.5)*70+(memory.transferConfidence/100)*30));
+  const actionDelta=confidence<40?0:score>=75? -3:score<40?4:0;
+  const riskDelta=confidence<50?0:score<40?1:score>=80?-1:0;
+  const rationale:string[]=[];
+  if(!cohorts.length) rationale.push('Brak pasującej historii kontekstowej.');
+  else rationale.push(`Arbitraż wykorzystuje ${cohorts.length} kohort: ${cohorts.map(c=>c.key).join(', ')}.`);
+  rationale.push(`Context success rate: ${successRate===null?'UNAVAILABLE':(successRate*100).toFixed(1)+'%'}.`);
+  rationale.push(`Transfer confidence: ${memory.transferConfidence}/100.`);
+  return {version:'m10.0-contextual-policy-arbitration-v1',score,confidence,cohorts:cohorts.map(c=>c.key),sampleSize,successRate:successRate===null?null:Number(successRate.toFixed(3)),actionDelta,riskDelta,rationale};
 }
 
 export function buildAdaptivePolicy(outcomes:DecisionOutcome[]=[]):AdaptivePolicy {
@@ -64,27 +81,18 @@ export function buildAdaptivePolicy(outcomes:DecisionOutcome[]=[]):AdaptivePolic
   else if((recentSuccessRate??0)<.4){rationale.push('Recent success rate spadł poniżej 40% — zwiększono rygor decyzji.');actionThreshold=90;evidenceThreshold=82;roiThreshold=20;riskCeiling='medium';confidenceThreshold=82;explorationRate=.05;}
   else if((successRate??0)>=.7&&r.length>=15){rationale.push('Historia outcomeów wspiera łagodniejsze progi dla dobrze udokumentowanych okazji.');actionThreshold=78;evidenceThreshold=65;roiThreshold=12;confidenceThreshold=65;explorationRate=.18;}
   else rationale.push('Historia jest użyteczna, ale niewystarczająca do agresywnej adaptacji.');
-  const reliable=[memory.byCategory.find(s=>s.sampleSize>=5),memory.bySource.find(s=>s.sampleSize>=5)].filter((s):s is PolicyMemorySlice=>!!s);
-  if(reliable.some(s=>(s.successRate??0)>=.8)&&memory.transferConfidence>=40){actionThreshold=Math.max(75,actionThreshold-2);rationale.push('Cross-deal memory wykryła stabilnie dodatnią kohortę — próg akcji skorygowano o 2 pkt.');}
-  else if(reliable.some(s=>(s.successRate??1)<.4)&&memory.transferConfidence>=40){actionThreshold=Math.min(92,actionThreshold+3);explorationRate=Math.min(explorationRate,.08);rationale.push('Cross-deal memory wykryła słabą kohortę — zwiększono ostrożność.');}
+  const arbitration = successRate===null ? undefined : arbitratePolicyContext({deal:{category:'',sourceId:'',} as DealAnalysis,outcomes,memory});
+  if(arbitration && arbitration.confidence>=40){actionThreshold=clamp(actionThreshold+arbitration.actionDelta,50,95);if(arbitration.riskDelta>0)riskCeiling='medium';rationale.push(...arbitration.rationale);}
   return {version:'m9.8-policy-learning-v1',actionThreshold,evidenceThreshold,roiThreshold,riskCeiling,confidenceThreshold,explorationRate,
-    sampleSize:r.length,successRate:successRate===null?null:Number(successRate.toFixed(3)),recentSuccessRate:recentSuccessRate===null?null:Number(recentSuccessRate.toFixed(3)),
-    calibration,rationale,memory};
+    sampleSize:r.length,successRate:successRate===null?null:Number(successRate.toFixed(3)),recentSuccessRate:recentSuccessRate===null?null:Number(recentSuccessRate.toFixed(3)),calibration,rationale,memory,arbitration};
 }
-
 export function evaluateDecisionOutcome(input:{deal:DealAnalysis;decision:'BUY'|'WATCH'|'PASS';realizedRoiPct?:number|null;reason?:string}):DecisionOutcome {
   const roi=input.realizedRoiPct??null;
   const outcome=roi===null?'UNRESOLVED':input.decision==='PASS'?(roi<=0?'SUCCESS':'FAILURE'):input.decision==='BUY'?(roi>=0?'SUCCESS':'FAILURE'):(roi>=input.deal.roiPct?'SUCCESS':'FAILURE');
-  return {id:crypto.randomUUID(),dealId:input.deal.id,decision:input.decision,outcome,realizedRoiPct:roi,observedAt:new Date().toISOString(),
-    reason:input.reason??'Outcome recorded from subsequent market observation.',category:input.deal.category,sourceId:input.deal.sourceId,risk:input.deal.risk,expectedRoiPct:input.deal.roiPct};
+  return {id:crypto.randomUUID(),dealId:input.deal.id,decision:input.decision,outcome,realizedRoiPct:roi,observedAt:new Date().toISOString(),reason:input.reason??'Outcome recorded from subsequent market observation.',category:input.deal.category,sourceId:input.deal.sourceId,risk:input.deal.risk,expectedRoiPct:input.deal.roiPct};
 }
-
 export function policyAccepts(deal:DealAnalysis,policy:AdaptivePolicy):boolean {
   const riskRank={low:0,medium:1,high:2,critical:3} as const;
   if(deal.risk==='critical'||riskRank[deal.risk]>riskRank[policy.riskCeiling])return false;
-  if(deal.score<policy.actionThreshold)return false;
-  if(deal.confidence<policy.confidenceThreshold)return false;
-  if(deal.confidence<policy.evidenceThreshold)return false;
-  if(deal.roiPct<policy.roiThreshold)return false;
-  return true;
+  if(deal.score<policy.actionThreshold)return false;if(deal.confidence<policy.confidenceThreshold)return false;if(deal.confidence<policy.evidenceThreshold)return false;if(deal.roiPct<policy.roiThreshold)return false;return true;
 }
