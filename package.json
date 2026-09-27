@@ -10,7 +10,7 @@
     "typecheck": "tsc -b --pretty false",
     "start:api": "node server/index.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "smoke:persistence": "node scripts/persistence-smoke.mjs",
+    "smoke:persistence": "tsx scripts/persistence-smoke.mjs",
     "smoke:real-source": "node scripts/real-source-smoke.mjs",
     "smoke:allegro": "node scripts/allegro-gateway-smoke.mjs",
     "smoke:marketplaces": "node scripts/marketplace-config-smoke.mjs",
