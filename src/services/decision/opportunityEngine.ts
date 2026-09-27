@@ -1,5 +1,5 @@
 import type { DealAnalysis } from '../../domain/deal';
-import { policyAccepts, buildAdaptivePolicy, type DecisionOutcome, type AdaptivePolicy } from '../learning/decisionPolicyLearning';
+import { policyAccepts, buildAdaptivePolicy, type AdaptivePolicy } from '../learning/decisionPolicyLearning';
 
 export type OpportunityDecision = {
   buyScore: number;
