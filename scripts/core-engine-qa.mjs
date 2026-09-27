@@ -5,7 +5,7 @@ import { decideOpportunity } from '../src/services/decision/opportunityEngine.ts
 import { summarizeEvidence, isActionableEvidence } from '../src/services/evidence/provenance.ts';
 import { matchProduct } from '../src/services/matching/productMatcher.ts';
 import { buildPortfolioPlan } from '../src/services/profit/portfolioEngine.ts';
-import { buildAdaptivePolicy, policyAccepts, evaluateDecisionOutcome } from '../src/services/learning/decisionPolicyLearning.ts';
+import { buildAdaptivePolicy, buildPolicyMemory, policyAccepts, evaluateDecisionOutcome } from '../src/services/learning/decisionPolicyLearning.ts';
 
 const base = {
   id: 'qa-1', productId: 'qa-product', ean: '5901234567890', sku: 'QA-001',
@@ -69,3 +69,24 @@ const learnedPolicy = buildAdaptivePolicy(Array.from({length:15}, (_,i) => ({ ..
 assert.equal(learnedPolicy.calibration, 'STABLE');
 assert.ok(learnedPolicy.successRate >= .99);
 console.log('M9.8 POLICY LEARNING PASS');
+
+
+const memoryOutcomes = Array.from({length:6}, (_,i) => ({
+  ...learnedOutcome,
+  id: 'memory-'+i,
+  outcome: i < 5 ? 'SUCCESS' : 'FAILURE',
+  category: 'Audio',
+  sourceId: 'qa-source',
+}));
+const memory = buildPolicyMemory(memoryOutcomes);
+assert.equal(memory.version, 'm9.9-cross-deal-memory-v1');
+assert.equal(memory.global.sampleSize, 6);
+assert.equal(memory.byCategory[0].key, 'Audio');
+assert.equal(memory.bySource[0].key, 'qa-source');
+assert.equal(memory.byDecision[0].key, decision.decision);
+assert.ok(memory.transferConfidence >= 0 && memory.transferConfidence <= 100);
+
+const crossDealPolicy = buildAdaptivePolicy(memoryOutcomes);
+assert.equal(crossDealPolicy.memory.version, 'm9.9-cross-deal-memory-v1');
+assert.ok(crossDealPolicy.memory.transferConfidence >= 40);
+console.log('M9.9 POLICY MEMORY PASS');
