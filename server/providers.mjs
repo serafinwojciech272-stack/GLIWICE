@@ -23,12 +23,12 @@ export const PROVIDERS = [
   {
     id: 'allegro',
     name: 'Allegro',
-    mode: 'account',
-    keys: ['ALLEGRO_CLIENT_ID', 'ALLEGRO_CLIENT_SECRET', 'ALLEGRO_REDIRECT_URI', 'ALLEGRO_SESSION_SECRET'],
+    mode: 'public-web-discovery',
+    keys: [],
     adapter: 'allegro',
     enabledByDefault: true,
-    message: 'Priority provider. Requires a user OAuth session created via /api/allegro/oauth.',
-    roadmap: { state: ROADMAP.IMPLEMENTED, notes: 'Sandbox/production switch via ALLEGRO_ENVIRONMENT. Requires OAuth API access.' },
+    message: 'Public marketplace discovery. No Allegro seller account or user OAuth is required by Extra Szpieg.',
+    roadmap: { state: ROADMAP.IMPLEMENTED, notes: 'Uses the public Allegro search surface for discovery; it does not create, edit, or manage seller offers.' },
   },
   {
     id: 'ebay',
