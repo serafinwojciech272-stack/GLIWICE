@@ -21,6 +21,7 @@ const state = {
   deals: [deal],
   watched: [deal.id],
   actions: { [deal.id]: 'BUY' },
+  outcomes: [],
   budget: 7777,
   minRoi: 27,
   savedAt: '2026-09-22T10:00:00.000Z',
