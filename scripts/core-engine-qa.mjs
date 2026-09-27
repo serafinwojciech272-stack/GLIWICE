@@ -5,6 +5,7 @@ import { decideOpportunity } from '../src/services/decision/opportunityEngine.ts
 import { summarizeEvidence, isActionableEvidence } from '../src/services/evidence/provenance.ts';
 import { matchProduct } from '../src/services/matching/productMatcher.ts';
 import { buildPortfolioPlan } from '../src/services/profit/portfolioEngine.ts';
+import { buildAdaptivePolicy, policyAccepts, evaluateDecisionOutcome } from '../src/services/learning/decisionPolicyLearning.ts';
 
 const base = {
   id: 'qa-1', productId: 'qa-product', ean: '5901234567890', sku: 'QA-001',
@@ -57,3 +58,14 @@ console.log(JSON.stringify({
   match: match.method,
   portfolioRoiPct: Number(portfolio.expectedRoiPct.toFixed(1)),
 }, null, 2));
+
+const policy = buildAdaptivePolicy([]);
+assert.equal(policy.version, 'm9.8-policy-learning-v1');
+assert.equal(policy.calibration, 'NO_DATA');
+assert.equal(policyAccepts(deal, policy), false);
+const learnedOutcome = evaluateDecisionOutcome({ deal, decision: decision.decision, realizedRoiPct: 22 });
+assert.ok(['SUCCESS','FAILURE','UNRESOLVED'].includes(learnedOutcome.outcome));
+const learnedPolicy = buildAdaptivePolicy(Array.from({length:15}, (_,i) => ({ ...learnedOutcome, id: 'o-'+i, outcome:'SUCCESS' })));
+assert.equal(learnedPolicy.calibration, 'STABLE');
+assert.ok(learnedPolicy.successRate >= .99);
+console.log('M9.8 POLICY LEARNING PASS');
