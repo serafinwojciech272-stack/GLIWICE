@@ -1,59 +1,9 @@
-const USER_AGENT = 'Extra-Szpieg/0.3 marketplace-discovery';
-const SEARCH_BASE = 'https://allegro.pl/listing';
-const clean = value => String(value ?? '').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\\s+/g, ' ').trim();
-
-function priceFrom(text) {
-  const m = text.match(/(\\d[\\d\\s.]*(?:,\\d{2})?)\\s*zł/i);
-  if (!m) return null;
-  const normalized = m[1].replace(/\\s/g, '').replace(/\\./g, '').replace(',', '.');
-  const n = Number(normalized);
-  return Number.isFinite(n) ? n : null;
-}
-
-function parseListings(html, limit) {
-  const results = [];
-  const seen = new Set();
-  const re = /<a[^>]+href=["'](\\/oferta\\/[^"']+)["'][^>]*>[\\s\\S]{0,9000}?<h2[^>]*>([\\s\\S]*?)<\\/h2>[\\s\\S]{0,12000}?<\\/a>/gi;
-  let match;
-  while ((match = re.exec(html)) && results.length < limit) {
-    const url = 'https://allegro.pl' + match[1];
-    if (seen.has(url)) continue;
-    const title = clean(match[2].replace(/<[^>]+>/g, ' '));
-    const start = match.index;
-    const block = html.slice(start, Math.min(html.length, start + 18000)).replace(/<[^>]+>/g, ' ');
-    const price = priceFrom(clean(block));
-    if (!title) continue;
-    seen.add(url);
-    results.push({
-      id: 'allegro-web-' + Buffer.from(url).toString('base64url').slice(0, 32),
-      productId: 'allegro-web-' + Buffer.from(url).toString('base64url').slice(0, 24),
-      title,
-      store: 'Allegro',
-      category: 'unknown',
-      price: price ?? 0,
-      condition: 'unknown',
-      availability: 'unknown',
-      sourceId: 'allegro',
-      sourceUrl: url,
-      observedAt: new Date().toISOString(),
-    });
-  }
-  return results;
-}
-
-export const id = 'allegro';
-export function configured() { return true; }
-export function authStatus() { return { status: 'configured', connection: 'public-web', detail: null }; }
-
-export async function search(query, limit = 20) {
-  const q = String(query || '').trim();
-  if (!q) throw new Error('Allegro search query is empty.');
-  const url = new URL(SEARCH_BASE);
-  url.searchParams.set('string', q);
-  const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT, 'Accept': 'text/html,application/xhtml+xml' } });
-  if (!response.ok) throw new Error('Allegro public search HTTP ' + response.status);
-  const html = await response.text();
-  const results = parseListings(html, Math.min(50, Math.max(1, Number(limit) || 20)));
-  if (!results.length) throw new Error('Allegro public search returned no parseable listings.');
-  return results;
-}
+const USER_AGENT='Extra-Szpieg/0.4 marketplace-discovery';
+const SEARCH_BASE='https://allegro.pl/listing';
+const clean=v=>String(v??'').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+const priceFrom=t=>{const m=clean(t).match(/(\d[\d\s.]*(?:,\d{2})?)\s*(?:zł|PLN)/i);if(!m)return null;const n=Number(m[1].replace(/\s/g,'').replace(/\./g,'').replace(',','.'));return Number.isFinite(n)?n:null;};
+function parseListings(html,limit){const out=[],seen=new Set();const blocks=html.split(/<article\b/i).slice(1);for(const block of blocks){if(out.length>=limit)break;const href=block.match(/href=["'](\/oferta\/[^"']+)["']/i)?.[1];const heading=block.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i)?.[1];if(!href||!heading)continue;const url='https://allegro.pl'+href;if(seen.has(url))continue;const title=clean(heading);const price=priceFrom(block);seen.add(url);out.push({id:'allegro-web-'+Buffer.from(url).toString('base64url').slice(0,32),productId:'allegro-web-'+Buffer.from(url).toString('base64url').slice(0,24),title,store:'Allegro',category:'unknown',price:price??0,currency:'PLN',condition:'unknown',availability:'unknown',sourceId:'allegro',sourceUrl:url,observedAt:new Date().toISOString()});}return out;}
+export const id='allegro';
+export function configured(){return true;}
+export function authStatus(){return{status:'configured',connection:'public-web',detail:null};}
+export async function search(query,limit=20){const q=String(query||'').trim();if(!q)throw new Error('Allegro search query is empty.');const u=new URL(SEARCH_BASE);u.searchParams.set('string',q);const r=await fetch(u,{headers:{'User-Agent':USER_AGENT,Accept:'text/html,application/xhtml+xml'}});if(!r.ok)throw new Error('Allegro public search HTTP '+r.status);const results=parseListings(await r.text(),Math.min(50,Math.max(1,Number(limit)||20)));if(!results.length)throw new Error('Allegro public search returned no parseable listings.');return results;}
