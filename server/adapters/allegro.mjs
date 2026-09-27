@@ -26,13 +26,16 @@ function parseListings(html, limit) {
     seen.add(url);
     results.push({
       id: 'allegro-web-' + Buffer.from(url).toString('base64url').slice(0, 32),
+      productId: 'allegro-web-' + Buffer.from(url).toString('base64url').slice(0, 24),
       title,
+      store: 'Allegro',
+      category: 'unknown',
       price: price ?? 0,
-      currency: 'PLN',
-      url,
-      source: 'allegro',
-      sourceName: 'Allegro',
-      provenance: { type: 'public-web-discovery', fetchedAt: new Date().toISOString(), sourceUrl: url },
+      condition: 'unknown',
+      availability: 'unknown',
+      sourceId: 'allegro',
+      sourceUrl: url,
+      observedAt: new Date().toISOString(),
     });
   }
   return results;
