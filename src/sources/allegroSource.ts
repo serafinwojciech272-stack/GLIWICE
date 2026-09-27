@@ -2,7 +2,7 @@ import type { ScanResult, SourceAdapter } from '../domain/source';
 import type { Deal } from '../domain/deal';
 
 export function createAllegroSource(phrase: string): SourceAdapter {
-  const source = { id: 'allegro', name: 'Allegro Public Discovery', type: 'API' as const, health: 'degraded' as const };
+  const source = { id: 'allegro', name: 'Allegro Public Discovery', type: 'PUBLIC_PAGE' as const, health: 'degraded' as const };
   return {
     source,
     async scan(query?: string): Promise<ScanResult> {
