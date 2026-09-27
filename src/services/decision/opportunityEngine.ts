@@ -1,4 +1,5 @@
 import type { DealAnalysis } from '../../domain/deal';
+import { policyAccepts, buildAdaptivePolicy, type DecisionOutcome, type AdaptivePolicy } from '../learning/decisionPolicyLearning';
 
 export type OpportunityDecision = {
   buyScore: number;
@@ -11,7 +12,7 @@ export type OpportunityDecision = {
 
 function clamp(value: number) { return Math.max(0, Math.min(100, Math.round(value))); }
 
-export function decideOpportunity(deal: DealAnalysis): OpportunityDecision {
+export function decideOpportunity(deal: DealAnalysis, policy: AdaptivePolicy = buildAdaptivePolicy()): OpportunityDecision {
   const availability = deal.availability === 'in_stock' ? 100 : deal.availability === 'limited' ? 72 : deal.availability === 'unknown' ? 35 : 0;
   const seller = deal.sellerRating ? Math.min(100, deal.sellerRating / 5 * 100) : 45;
   const resaleEvidence = deal.estimatedResalePrice ? 80 : deal.marketMedian ? 60 : 30;
@@ -19,11 +20,13 @@ export function decideOpportunity(deal: DealAnalysis): OpportunityDecision {
   const evidenceScore = deal.confidence;
   const riskAdjustedScore = clamp(deal.score * (1 - deal.riskScore / 130));
   const buyScore = clamp(riskAdjustedScore * 0.5 + marketabilityScore * 0.2 + evidenceScore * 0.3);
-  const decision = deal.risk === 'critical' || deal.availability === 'out_of_stock' || buyScore < 58
+  const rawDecision = deal.risk === 'critical' || deal.availability === 'out_of_stock' || buyScore < 58
     ? 'PASS'
     : buyScore >= 82 && deal.roiPct >= 15 && evidenceScore >= 70 ? 'BUY'
     : 'WATCH';
+  const decision = rawDecision === 'BUY' && !policyAccepts(deal, policy) ? 'WATCH' : rawDecision;
   const reasons = [
+    `policy ${policy.version} ${policyAccepts(deal, policy) ? 'accepted' : 'restricted'}`,
     `marketability ${marketabilityScore}/100`,
     `evidence ${evidenceScore}/100`,
     `risk-adjusted ${riskAdjustedScore}/100`,
