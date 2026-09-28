@@ -13,7 +13,7 @@ import { buildAdaptivePolicy, evaluateDecisionOutcome } from './services/learnin
 import { summarizeEvidence, provenanceLabel, sourceTruthLabel } from './services/evidence/provenance';
 import './visual-master.css';
 
-const categories = ['Wszystko', 'Audio', 'Laptopy', 'Smartfony', 'Gaming', 'TV', 'AGD', 'Hobby'];
+const categories = ['Wszystko', 'Elektronika', 'RTV', 'AGD', 'Komputery', 'Laptopy', 'Smartfony', 'Gaming', 'TV', 'Audio', 'Drony', 'Fotografia', 'Książki', 'Płyty', 'Hobby', 'Meble', 'Dom i ogród', 'Sport', 'Motoryzacja', 'Kolekcjonerskie'];
 const money = (value: number) => `${Math.round(value).toLocaleString('pl-PL')} zł`;
 const marketplaceApi = String(import.meta.env.VITE_MARKETPLACE_API_URL || 'https://extra-szpieg-api.onrender.com').replace(/\/$/, '');
 
