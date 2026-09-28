@@ -1,5 +1,6 @@
 import { evaluateDiscoveryCandidate } from './discoveryEvidenceDecision.mjs';
 import { applyDiscoveryQualityGate } from './discoveryQuality.mjs';
+import { applyMissionGate } from './discoveryMissionGate.mjs';
 const DISCOVERY_PROFILES = [
   { id: 'electronics', query: 'elektronika okazja' },
   { id: 'computers', query: 'laptop komputer okazja' },
@@ -25,6 +26,6 @@ export async function runMassDiscovery({search,profiles=DISCOVERY_PROFILES,perQu
  const groups=new Map(); for(const deal of all){const key=keyOf(deal);const list=groups.get(key)??[];list.push(deal);groups.set(key,list);}
  const enriched=all.map(deal=>{const peers=groups.get(keyOf(deal))??[deal];const prices=peers.map(x=>Number(x.price)).filter(x=>x>0);const marketMedian=median(prices);const discount=marketMedian&&Number(deal.price)>0?Math.max(0,((marketMedian-Number(deal.price))/marketMedian)*100):0;return{...deal,marketMedian:marketMedian??deal.marketMedian,marketSampleSize:prices.length,marketSources:[...new Set(peers.map(x=>x.sourceId).filter(Boolean))],discoveryDiscountPct:Number(discount.toFixed(1)),discoveryScore:opportunityScore({...deal,marketMedian:marketMedian??deal.marketMedian})};});
  const quality=applyDiscoveryQualityGate(enriched); const unique=new Map(); for(const deal of quality.accepted){const k=`${keyOf(deal)}|${deal.sourceId}|${deal.sourceUrl}`;if(!unique.has(k)||deal.discoveryScore>unique.get(k).discoveryScore)unique.set(k,deal);}
- const ranked=[...unique.values()].map(evaluateDiscoveryCandidate).sort((a,b)=>(b.decision.score-a.decision.score)||(b.discoveryScore-a.discoveryScore)).slice(0,maxResults);
- return{mode:'M11_2_MASS_DISCOVERY_EVIDENCE_DECISION',generatedAt:new Date().toISOString(),profiles:profiles.map(x=>x.id),profileCount:profiles.length,scannedOffers:all.length,qualityAccepted:quality.accepted.length,qualityRejected:quality.rejected.length,uniqueOffers:unique.size,results:ranked,runs:runs.map(x=>({profile:x.profile,query:x.query,resultCount:x.results.length,providers:x.providers,error:x.error||null}))};
+ const ranked=applyMissionGate([...unique.values()].map(evaluateDiscoveryCandidate)).sort((a,b)=>(b.decision.score-a.decision.score)||(b.discoveryScore-a.discoveryScore)).slice(0,maxResults);
+ return{mode:'M11_3_MASS_DISCOVERY_EVIDENCE_DECISION_MISSION_GATE',generatedAt:new Date().toISOString(),profiles:profiles.map(x=>x.id),profileCount:profiles.length,scannedOffers:all.length,qualityAccepted:quality.accepted.length,qualityRejected:quality.rejected.length,uniqueOffers:unique.size,results:ranked,runs:runs.map(x=>({profile:x.profile,query:x.query,resultCount:x.results.length,providers:x.providers,error:x.error||null}))};
 }
