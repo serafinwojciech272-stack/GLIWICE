@@ -25,7 +25,8 @@
     "smoke:m10.1": "tsx scripts/m10.1-runtime-integration.mjs",
     "smoke:m11": "node scripts/m11-mass-discovery-smoke.mjs",
     "smoke:m11.1": "node scripts/m11.1-discovery-quality-smoke.mjs",
-    "smoke:m11.2": "node scripts/m11.2-evidence-decision-smoke.mjs"
+    "smoke:m11.2": "node scripts/m11.2-evidence-decision-smoke.mjs",
+    "smoke:m11.3": "node scripts/m11.3-mission-gate-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
