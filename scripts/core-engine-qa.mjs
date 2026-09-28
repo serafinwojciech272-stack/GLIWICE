@@ -16,7 +16,7 @@ const candidate={...base,id:'qa-2',title:'Sony WH-1000XM5 czarne',sourceId:'qa-s
 const portfolio=buildPortfolioPlan([deal],2000);assert.ok(portfolio.invested>0);assert.ok(portfolio.expectedProfit>0);assert.ok(portfolio.expectedRoiPct>0);
 const policy=buildAdaptivePolicy([]);assert.equal(policy.version,'m9.8-policy-learning-v1');assert.equal(policy.calibration,'NO_DATA');assert.equal(policyAccepts(deal,policy),false);
 const learnedOutcome=evaluateDecisionOutcome({deal,decision:decision.decision,realizedRoiPct:22});assert.ok(['SUCCESS','FAILURE','UNRESOLVED'].includes(learnedOutcome.outcome));
-const learnedPolicy=buildAdaptivePolicy(Array.from({length:15},(_,i)=>({...learnedOutcome,id:'o-'+i,outcome:'SUCCESS'})));assert.equal(learnedPolicy.calibration,'STABLE');assert.ok(learnedPolicy.successRate>=.99);
+const learnedPolicy=buildAdaptivePolicy(Array.from({length:30},(_,i)=>({...learnedOutcome,id:'o-'+i,outcome:'SUCCESS'})));assert.equal(learnedPolicy.calibration,'STABLE');assert.ok(learnedPolicy.successRate>=.99);
 const memoryOutcomes=Array.from({length:6},(_,i)=>({...learnedOutcome,id:'memory-'+i,outcome:i<5?'SUCCESS':'FAILURE',category:'Audio',sourceId:'qa-source'}));
 const memory=buildPolicyMemory(memoryOutcomes);assert.equal(memory.version,'m9.9-cross-deal-memory-v1');assert.equal(memory.global.sampleSize,6);assert.equal(memory.byCategory[0].key,'Audio');assert.equal(memory.bySource[0].key,'qa-source');assert.equal(memory.byDecision[0].key,decision.decision);assert.ok(memory.transferConfidence>=0&&memory.transferConfidence<=100);
 const crossDealPolicy=buildAdaptivePolicy(memoryOutcomes);assert.equal(crossDealPolicy.memory.version,'m9.9-cross-deal-memory-v1');assert.ok(crossDealPolicy.memory.transferConfidence>=40);
