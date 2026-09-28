@@ -24,6 +24,8 @@ const search = await get('/api/marketplaces/search?q=iphone&limit=5');
 assert(search.status === 200, 'search HTTP ' + search.status);
 assert(search.body?.query === 'iphone', 'search query mismatch');
 assert(Array.isArray(search.body?.results), 'search results missing');
+const liveProviders = Array.isArray(search.body?.providers) ? search.body.providers.filter(x => x.status === 'ok' && x.resultCount > 0) : [];
+assert(liveProviders.length > 0, 'LIVE DISCOVERY FAILURE: no enabled provider returned a real offer for the smoke query');
 
 const invalid = await get('/api/marketplaces/search?q=iphone&limit=5&marketplace=__invalid__');
 assert(invalid.status === 400, 'unknown provider should return HTTP 400');
@@ -47,6 +49,7 @@ console.log(JSON.stringify({
   health: true,
   providers: providers.body.sources.map(x => ({ id: x.id, enabled: x.enabled, configured: x.configured, status: x.status })),
   searchResults: search.body.results.length,
+  liveProviders,
   selectedProvider: selected.body.selectedProvider,
   selectedProviderResults: selected.body.results.length,
   eBayDisabled: ebay?.status === 'disabled'
