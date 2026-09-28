@@ -1,15 +1,11 @@
 import type { SourceAdapter } from '../domain/source';
-import { createAllegroSource } from './allegroSource';
-import { createPublicJsonSource } from './publicJsonSource';
 import { createMarketplaceApiSource } from './marketplaceApiSource';
 
-const realSourceUrl = (import.meta.env.VITE_REAL_SOURCE_URL ?? '').trim();
-const allegroPhrase = (import.meta.env.VITE_ALLEGRO_SEARCH_PHRASE ?? '').trim();
-
+/**
+ * One live source on the client: the marketplace gateway.
+ * Provider fan-out belongs to the Render gateway so the browser never
+ * duplicates provider traffic or bypasses provider health/rate-limit logic.
+ */
 export function getSourceAdapters(): SourceAdapter[] {
-  return [
-    createAllegroSource(allegroPhrase),
-    createPublicJsonSource({ id: 'real-public-feed', name: 'Real Public Feed', url: realSourceUrl }),
-    createMarketplaceApiSource(),
-  ];
+  return [createMarketplaceApiSource()];
 }
