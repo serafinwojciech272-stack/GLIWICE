@@ -1,0 +1,13 @@
+const base = process.env.SZPIEG_API_URL || 'http://localhost:10000';
+const url = `${base}/api/marketplaces/discovery?perQuery=2&maxResults=20`;
+const response = await fetch(url, { headers: { Accept: 'application/json' } });
+if (!response.ok) throw new Error(`M11 discovery HTTP ${response.status}`);
+const body = await response.json();
+if (body.mode !== 'M11_MASS_DISCOVERY') throw new Error('M11 mode missing');
+if (!Array.isArray(body.profiles) || body.profileCount < 10) throw new Error('M11 profiles incomplete');
+if (!Array.isArray(body.results)) throw new Error('M11 results missing');
+if (!Array.isArray(body.runs) || body.runs.length !== body.profileCount) throw new Error('M11 run ledger incomplete');
+const successfulProviders = body.runs.flatMap(x => x.providers || []).filter(x => x.status === 'ok' && x.resultCount > 0);
+console.log(`M11 profiles=${body.profileCount} scanned=${body.scannedOffers} unique=${body.uniqueOffers} ranked=${body.results.length}`);
+console.log(`M11 live-provider-runs=${successfulProviders.length}`);
+console.log('M11 MASS DISCOVERY SMOKE PASS');
