@@ -20,11 +20,11 @@ const marketplaceApi = String(import.meta.env.VITE_MARKETPLACE_API_URL || 'https
 export default function App() {
   const [query, setQuery] = useState(''); const [category, setCategory] = useState('Wszystko');
   const initial = loadState();
-  const [watched, setWatched] = useState<string[]>(initial.watched); const [actions, setActions] = useState<Record<string, DealActionState>>(initial.actions); const [outcomes, setOutcomes] = useState(initial.outcomes); const [deals, setDeals] = useState<DealAnalysis[]>(initial.deals);
+  const [watched, setWatched] = useState<string[]>(initial.watched); const [actions, setActions] = useState<Record<string, DealActionState>>(initial.actions); const [outcomes, setOutcomes] = useState(initial.outcomes); const [missions, setMissions] = useState(initial.missions); const [deals, setDeals] = useState<DealAnalysis[]>(initial.deals);
   const [selected, setSelected] = useState<DealAnalysis | null>(null); const [scanning, setScanning] = useState(false);
   const [scanInfo, setScanInfo] = useState(initial.savedAt ? `Odtworzono zapis z ${new Date(initial.savedAt).toLocaleString('pl-PL')}.` : 'Silnik gotowy. Czekam na skan.'); const [budget, setBudget] = useState(initial.budget);
   const [minRoi, setMinRoi] = useState(initial.minRoi); const [view, setView] = useState<'radar' | 'portfolio'>('radar'); const [section, setSection] = useState<'all' | 'drops' | 'watched' | 'alerts'>('all');
-  useEffect(() => { saveState({ deals, watched, actions, outcomes, budget: Number.isFinite(budget) && budget >= 0 ? budget : 0, minRoi: Number.isFinite(minRoi) ? Math.max(0, Math.min(80, minRoi)) : 0, savedAt: new Date().toISOString() }); }, [deals, watched, actions, budget, minRoi]);
+  useEffect(() => { saveState({ deals, watched, actions, outcomes, missions, budget: Number.isFinite(budget) && budget >= 0 ? budget : 0, minRoi: Number.isFinite(minRoi) ? Math.max(0, Math.min(80, minRoi)) : 0, savedAt: new Date().toISOString() }); }, [deals, watched, actions, outcomes, missions, budget, minRoi]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); document.querySelector<HTMLInputElement>('.search input')?.focus(); }
