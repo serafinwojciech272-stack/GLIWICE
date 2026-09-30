@@ -28,8 +28,14 @@ jobs:
       - run: npm run smoke:m11.5
       - run: npm run smoke:m11.6
       - run: npm run smoke:m11.7
+      - run: npm run smoke:m12:persistence
+      - run: npm run smoke:m12:hardening
       - run: npm run smoke:marketplaces
       - run: npm run smoke:marketplace-gateway
+      - name: Production M12 E2E smoke
+        env:
+          MARKETPLACE_GATEWAY_URL: https://extra-szpieg-api.onrender.com
+        run: npm run smoke:m12:production
       - name: Production marketplace gateway smoke
         env:
           MARKETPLACE_GATEWAY_URL: https://extra-szpieg-api.onrender.com
