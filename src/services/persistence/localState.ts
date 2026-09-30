@@ -62,3 +62,34 @@ export function recordMissionOutcome(missionId: string, input: { outcome: Missio
   saveState({ ...state, missions: state.missions.map(m => m.missionId === missionId ? updated : m), savedAt: new Date().toISOString() }); return updated;
 }
 export function listMissions(): MissionRecord[] { return loadState().missions; }
+
+
+export function startMission(missionId: string): MissionRecord {
+  const state = loadState();
+  const mission = state.missions.find(m => m.missionId === missionId);
+  if (!mission) throw new Error('Mission not found: ' + missionId);
+  if (mission.state !== 'MISSION_CREATED') throw new Error('Mission must be MISSION_CREATED before execution: ' + mission.state);
+  const updated = { ...mission, state: 'EXECUTING' as const, startedAt: new Date().toISOString() };
+  saveState({ ...state, missions: state.missions.map(m => m.missionId === missionId ? updated : m), savedAt: new Date().toISOString() });
+  return updated;
+}
+
+export function completeMission(missionId: string, learning?: { sampleSize: number; successRate: number | null }): MissionRecord {
+  const state = loadState();
+  const mission = state.missions.find(m => m.missionId === missionId);
+  if (!mission) throw new Error('Mission not found: ' + missionId);
+  if (mission.state !== 'EXECUTING') throw new Error('Mission must be EXECUTING before completion: ' + mission.state);
+  const updated = { ...mission, state: 'COMPLETED' as const, completedAt: new Date().toISOString(), learningSampleSize: learning?.sampleSize, learningSuccessRate: learning?.successRate ?? null };
+  saveState({ ...state, missions: state.missions.map(m => m.missionId === missionId ? updated : m), savedAt: new Date().toISOString() });
+  return updated;
+}
+
+export function failMission(missionId: string, reason = 'Mission execution failed.'): MissionRecord {
+  const state = loadState();
+  const mission = state.missions.find(m => m.missionId === missionId);
+  if (!mission) throw new Error('Mission not found: ' + missionId);
+  if (mission.state !== 'EXECUTING') throw new Error('Mission must be EXECUTING before failure: ' + mission.state);
+  const updated = { ...mission, state: 'FAILED' as const, failedAt: new Date().toISOString(), learningSampleSize: state.outcomes.length, learningSuccessRate: null };
+  saveState({ ...state, missions: state.missions.map(m => m.missionId === missionId ? updated : m), savedAt: new Date().toISOString() });
+  return updated;
+}
