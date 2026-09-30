@@ -26,6 +26,7 @@ jobs:
       - run: npm run smoke:m11.3
       - run: npm run smoke:m11.4
       - run: npm run smoke:m11.5
+      - run: npm run smoke:m11.6
       - run: npm run smoke:marketplaces
       - run: npm run smoke:marketplace-gateway
       - name: Production marketplace gateway smoke
