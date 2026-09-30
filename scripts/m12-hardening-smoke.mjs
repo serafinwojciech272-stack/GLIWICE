@@ -3,7 +3,7 @@ import { buildEvidencePackage } from '../server/discoveryEvidenceDecision.mjs';
 import { buildMissionIntent } from '../server/discoveryMissionGate.mjs';
 import { canTransition } from '../server/missionLifecycle.mjs';
 const deal={id:'hardening',title:'Valid Product',sourceId:'amazon',sourceUrl:'https://example.com/x',price:50,observedAt:new Date().toISOString(),ean:'5901234567890',marketMedian:100,marketSampleSize:2,marketSources:['amazon','ceneo'],discoveryScore:90,discoveryDiscountPct:50};
-const q=assessDiscoveryQuality(deal); if(!!q.accepted || q.qualityScore<60) throw new Error('valid discovery rejected');
+const q=assessDiscoveryQuality(deal); if(!q.accepted || q.qualityScore<60) throw new Error('valid discovery rejected');
 const e=buildEvidencePackage(deal); if(e.status!=='READY') throw new Error('valid evidence not ready');
 const m=buildMissionIntent({...deal,decision:{decision:'BUY',decisionReady:true,confidence:90,score:90},evidencePackage:e,discoveryQualityScore:q.discoveryQualityScore}); if(!m.eligible || m.state!=='AWAITING_APPROVAL') throw new Error('eligible mission gate failed');
 if(canTransition('AWAITING_APPROVAL','EXECUTING') || canTransition('COMPLETED','EXECUTING')) throw new Error('lifecycle bypass detected');
