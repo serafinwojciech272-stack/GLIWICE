@@ -1,4 +1,4 @@
-const base = (process.env.MARKETPLACE_GATEWAY_URL || 'https://extra-szpieg-api.onrender.com').replace(/\\/$/,'');
+const base = (process.env.MARKETPLACE_GATEWAY_URL || 'https://extra-szpieg-api.onrender.com').replace(/\/$/,'');
 const json = async (url, options) => { const response = await fetch(url, options); const text = await response.text(); let body; try { body = JSON.parse(text); } catch { body = { raw:text }; } if (!response.ok) throw new Error('HTTP '+response.status+' '+JSON.stringify(body)); return body; };
 const health = await json(base + '/health');
 if (!health.ok) throw new Error('production health not ok');
