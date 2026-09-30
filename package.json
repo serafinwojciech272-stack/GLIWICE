@@ -27,19 +27,9 @@
     "smoke:m11.1": "node scripts/m11.1-discovery-quality-smoke.mjs",
     "smoke:m11.2": "node scripts/m11.2-evidence-decision-smoke.mjs",
     "smoke:m11.3": "node scripts/m11.3-mission-gate-smoke.mjs",
-    "smoke:m11.4": "tsx scripts/m11.4-approval-persistence-smoke.mjs"
+    "smoke:m11.4": "tsx scripts/m11.4-approval-persistence-smoke.mjs",
+    "smoke:m11.5": "tsx scripts/m11.5-outcome-learning-smoke.ts"
   },
-  "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "lucide-react": "latest"
-  },
-  "devDependencies": {
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "tsx": "latest"
-  }
+  "dependencies": {"@vitejs/plugin-react":"latest","vite":"latest","typescript":"latest","react":"latest","react-dom":"latest","lucide-react":"latest"},
+  "devDependencies": {"@types/react":"latest","@types/react-dom":"latest","tsx":"latest"}
 }
