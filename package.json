@@ -30,8 +30,22 @@
     "smoke:m11.4": "tsx scripts/m11.4-approval-persistence-smoke.mjs",
     "smoke:m11.5": "tsx scripts/m11.5-outcome-learning-smoke.ts",
     "smoke:m11.6": "node scripts/m11.6-mission-lifecycle-smoke.mjs",
-    "smoke:m11.7": "node scripts/m11.7-mission-observability-smoke.mjs"
+    "smoke:m11.7": "node scripts/m11.7-mission-observability-smoke.mjs",
+    "smoke:m12:persistence": "node scripts/m12-server-persistence-smoke.mjs",
+    "smoke:m12:hardening": "node scripts/m12-hardening-smoke.mjs",
+    "smoke:m12:production": "node scripts/m12-production-e2e.mjs"
   },
-  "dependencies": {"@vitejs/plugin-react":"latest","vite":"latest","typescript":"latest","react":"latest","react-dom":"latest","lucide-react":"latest"},
-  "devDependencies": {"@types/react":"latest","@types/react-dom":"latest","tsx":"latest"}
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "typescript": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "lucide-react": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "tsx": "latest"
+  }
 }
