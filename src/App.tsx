@@ -46,9 +46,7 @@ export default function App() {
       if (!response.ok) throw new Error('Mass Discovery HTTP ' + response.status);
       const payload = await response.json();
       const raw = Array.isArray(payload.results) ? payload.results : [];
-      const analyzed = raw.map((deal: Deal) => analyzeDealLocally(deal as Deal) && deal).map((deal: Deal) => {
-        return analyzeDeal(deal);
-      });
+      const analyzed = raw.map((deal: Deal) => analyzeDeal(deal));
       setDeals(analyzed);
       setScanInfo(`Mass Discovery: ${analyzed.length} ofert • BUY ${payload.decisionStats?.BUY ?? 0} • WATCH ${payload.decisionStats?.WATCH ?? 0} • misje ${payload.missionStats?.eligible ?? 0}`);
     } catch (error) {
