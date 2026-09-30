@@ -1,9 +1,51 @@
 {
   "name": "extra-szpieg",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.1",
   "type": "module",
-  "scripts": {"dev": "vite", "build": "tsc -b && vite build", "preview": "vite preview"},
-  "dependencies": {"@vitejs/plugin-react": "latest", "vite": "latest", "typescript": "latest", "react": "latest", "react-dom": "latest", "lucide-react": "latest"},
-  "devDependencies": {"@types/react": "latest", "@types/react-dom": "latest"}
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --pretty false",
+    "start:api": "node server/index.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:persistence": "tsx scripts/persistence-smoke.mjs",
+    "smoke:real-source": "node scripts/real-source-smoke.mjs",
+    "smoke:allegro": "node scripts/allegro-gateway-smoke.mjs",
+    "smoke:marketplaces": "node scripts/marketplace-config-smoke.mjs",
+    "smoke:marketplace-gateway": "node scripts/marketplace-gateway-smoke.mjs",
+    "smoke:core-engine": "tsx scripts/core-engine-qa.mjs",
+    "smoke:marketplace-contract": "tsx scripts/marketplace-gateway-contract-test.mjs",
+    "smoke:ebay-mapper": "node scripts/ebay-mapper-qa.mjs",
+    "smoke:providers": "node scripts/marketplace-provider-architecture-test.mjs",
+    "smoke:allegro-integration": "node scripts/allegro-gateway-integration-test.mjs",
+    "smoke:allegro-consolidation": "node scripts/allegro-consolidation-test.mjs",
+    "smoke:action-state": "tsx scripts/action-state-smoke.mjs",
+    "smoke:m10.1": "tsx scripts/m10.1-runtime-integration.mjs",
+    "smoke:m11": "node scripts/m11-mass-discovery-smoke.mjs",
+    "smoke:m11.1": "node scripts/m11.1-discovery-quality-smoke.mjs",
+    "smoke:m11.2": "node scripts/m11.2-evidence-decision-smoke.mjs",
+    "smoke:m11.3": "node scripts/m11.3-mission-gate-smoke.mjs",
+    "smoke:m11.4": "tsx scripts/m11.4-approval-persistence-smoke.mjs",
+    "smoke:m11.5": "tsx scripts/m11.5-outcome-learning-smoke.ts",
+    "smoke:m11.6": "node scripts/m11.6-mission-lifecycle-smoke.mjs",
+    "smoke:m11.7": "node scripts/m11.7-mission-observability-smoke.mjs",
+    "smoke:m12:persistence": "node scripts/m12-server-persistence-smoke.mjs",
+    "smoke:m12:hardening": "node scripts/m12-hardening-smoke.mjs",
+    "smoke:m12:production": "node scripts/m12-production-e2e.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "typescript": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "lucide-react": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "tsx": "latest"
+  }
 }

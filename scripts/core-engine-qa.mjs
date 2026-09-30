@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import { calculateProfit } from '../src/services/profitEngine.ts';
+import { analyzeDeal } from '../src/services/dealEngine.ts';
+import { decideOpportunity } from '../src/services/decision/opportunityEngine.ts';
+import { summarizeEvidence, isActionableEvidence } from '../src/services/evidence/provenance.ts';
+import { matchProduct } from '../src/services/matching/productMatcher.ts';
+import { buildPortfolioPlan } from '../src/services/profit/portfolioEngine.ts';
+import { buildAdaptivePolicy, buildPolicyMemory, arbitratePolicyContext, policyAccepts, evaluateDecisionOutcome } from '../src/services/learning/decisionPolicyLearning.ts';
+
+const base={id:'qa-1',productId:'qa-product',ean:'5901234567890',sku:'QA-001',title:'Sony WH-1000XM5',brand:'Sony',model:'WH-1000XM5',store:'QA Store',category:'Audio',price:600,previousPrice:900,marketMedian:900,historicalMedian90d:880,estimatedResalePrice:820,shippingIn:0,condition:'new',availability:'in_stock',sellerRating:4.9,sourceId:'qa-source',sourceUrl:'https://example.com/qa',observedAt:new Date().toISOString()};
+const profit=calculateProfit({purchasePrice:600,resalePrice:820,marketplaceFeePct:8,paymentFeePct:1.5,packagingCost:8});assert.ok(Math.abs(profit.totalCost-685.9)<.001);assert.equal(Math.round(profit.profit),134);assert.ok(profit.roiPct>19);
+const deal=analyzeDeal(base);assert.ok(deal.score>=0&&deal.score<=100);assert.ok(deal.confidence>=75);assert.ok(deal.evidence.length>=4);assert.ok(Number.isFinite(deal.roiPct));
+const decision=decideOpportunity(deal);assert.ok(['BUY','WATCH','PASS'].includes(decision.decision));assert.ok(decision.buyScore>=0&&decision.buyScore<=100);
+const evidence=summarizeEvidence(deal);assert.equal(evidence.missingSourceCount,0);assert.ok(evidence.observedCount>=2);assert.ok(isActionableEvidence(deal));
+const candidate={...base,id:'qa-2',title:'Sony WH-1000XM5 czarne',sourceId:'qa-source-2'};const match=matchProduct(base,candidate);assert.equal(match.method,'ean_exact');assert.ok(match.confidence>=90);assert.equal(match.needsReview,false);
+const portfolio=buildPortfolioPlan([deal],2000);assert.ok(portfolio.invested>0);assert.ok(portfolio.expectedProfit>0);assert.ok(portfolio.expectedRoiPct>0);
+const policy=buildAdaptivePolicy([]);assert.equal(policy.version,'m9.8-policy-learning-v1');assert.equal(policy.calibration,'NO_DATA');assert.equal(policyAccepts(deal,policy),false);
+const learnedOutcome=evaluateDecisionOutcome({deal,decision:decision.decision,realizedRoiPct:22});assert.ok(['SUCCESS','FAILURE','UNRESOLVED'].includes(learnedOutcome.outcome));
+const learnedPolicy=buildAdaptivePolicy(Array.from({length:30},(_,i)=>({...learnedOutcome,id:'o-'+i,outcome:'SUCCESS'})));assert.equal(learnedPolicy.calibration,'STABLE');assert.ok(learnedPolicy.successRate>=.99);
+const memoryOutcomes=Array.from({length:6},(_,i)=>({...learnedOutcome,id:'memory-'+i,outcome:i<5?'SUCCESS':'FAILURE',category:'Audio',sourceId:'qa-source'}));
+const memory=buildPolicyMemory(memoryOutcomes);assert.equal(memory.version,'m9.9-cross-deal-memory-v1');assert.equal(memory.global.sampleSize,6);assert.equal(memory.byCategory[0].key,'Audio');assert.equal(memory.bySource[0].key,'qa-source');assert.equal(memory.byDecision[0].key,decision.decision);assert.ok(memory.transferConfidence>=0&&memory.transferConfidence<=100);
+const crossDealPolicy=buildAdaptivePolicy(memoryOutcomes);assert.equal(crossDealPolicy.memory.version,'m9.9-cross-deal-memory-v1');assert.ok(crossDealPolicy.memory.transferConfidence>=20);
+const arbitration=arbitratePolicyContext({deal,outcomes:memoryOutcomes,memory});assert.equal(arbitration.version,'m10.0-contextual-policy-arbitration-v1');assert.ok(arbitration.confidence>=0&&arbitration.confidence<=100);assert.ok(arbitration.cohorts.includes('Audio'));assert.ok(arbitration.cohorts.includes('qa-source'));assert.ok(arbitration.sampleSize>=6);
+const contextualDecision=decideOpportunity(deal,crossDealPolicy);assert.ok(['BUY','WATCH','PASS'].includes(contextualDecision.decision));assert.ok(contextualDecision.reasons.some(x=>x.startsWith('context ')));
+console.log('CORE ENGINE QA PASS');console.log('M9.8 POLICY LEARNING PASS');console.log('M9.9 POLICY MEMORY PASS');console.log('M10.0 CONTEXTUAL POLICY ARBITRATION PASS');

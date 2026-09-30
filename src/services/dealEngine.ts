@@ -90,6 +90,14 @@ export function analyzeDeal(deal: Deal): DealAnalysis {
     risk,
     verdict,
     reasons,
+    evidence: [
+      { kind: 'observed', label: 'Źródło', value: deal.store, sourceId: deal.sourceId },
+      { kind: 'observed', label: 'Cena zakupu', value: `${deal.price.toFixed(2)} zł`, sourceId: deal.sourceId },
+      ...(deal.marketMedian ? [{ kind: 'observed' as const, label: 'Mediana rynku', value: `${deal.marketMedian.toFixed(2)} zł`, sourceId: deal.sourceId }] : []),
+      ...(deal.historicalMedian90d ? [{ kind: 'calculated' as const, label: 'Mediana 90d', value: `${deal.historicalMedian90d.toFixed(2)} zł`, sourceId: deal.sourceId }] : []),
+      { kind: 'calculated', label: 'Profit / ROI', value: `${profit.profit.toFixed(2)} zł / ${profit.roiPct.toFixed(1)}%`, confidence },
+      ...(deal.estimatedResalePrice ? [{ kind: 'estimated' as const, label: 'Szacowana odsprzedaż', value: `${deal.estimatedResalePrice.toFixed(2)} zł`, confidence }] : []),
+    ],
   };
 }
 
