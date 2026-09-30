@@ -46,6 +46,7 @@ export default function App() {
   const policy = useMemo(() => buildAdaptivePolicy(outcomes), [outcomes]);
   const selectedOpportunity = selected ? decideOpportunity(selected, policy) : null;
   const selectedMission = selected ? missions.find(m => m.dealId === selected.id) ?? null : null;
+  const selectedProvenance = selected ? summarizeEvidence(selected) : null;
   const missionEligible = Boolean(selected && selectedOpportunity?.decision === 'BUY' && selected.confidence >= 60 && selectedProvenance?.status !== 'missing');
   const requestMissionApproval = () => {
     if (!selected || !missionEligible) { setScanInfo('Misja wymaga decyzji BUY i wystarczającej jakości dowodów.'); return; }
@@ -80,10 +81,14 @@ export default function App() {
     const raw = window.prompt('Podaj zrealizowany ROI % (anuluj = UNRESOLVED):');
     const realizedRoiPct = raw === null || raw.trim() === '' ? null : Number(raw.replace(',', '.'));
     if (realizedRoiPct !== null && !Number.isFinite(realizedRoiPct)) { setScanInfo('Nieprawidłowy ROI outcome.'); return; }
-    setOutcomes(current => [...current, evaluateDecisionOutcome({ deal, decision, realizedRoiPct })].slice(-100));
+    const evaluated = evaluateDecisionOutcome({ deal, decision, realizedRoiPct });
+    setOutcomes(current => [...current, evaluated].slice(-100));
+    if (selectedMission?.state === 'EXECUTING') {
+      recordMissionOutcome(selectedMission.missionId, { outcome: evaluated.outcome, realizedRoiPct, reason: 'Outcome recorded from Szpieg UI.' });
+      setMissions(loadState().missions);
+    }
     setScanInfo('Outcome zapisany. Policy Learning Loop przeliczył progi.');
   };
-  const selectedProvenance = selected ? summarizeEvidence(selected) : null;
   return <div className="app"><aside>
     <div className="brand"><div className="logo"><Radar/></div><div><b>EXTRA SZPIEG</b><span>PRIVATE DEAL INTELLIGENCE</span></div></div><div className="modeLabel">COMMAND CENTER</div>
     <nav><button className={view==='radar'?'navItem active':'navItem'} onClick={()=>{setView('radar');setSection('all')}}><LayoutDashboard/> Radar okazji</button><button className="navItem" onClick={()=>{setSection('all');runSzpieg()}}><Zap/> Skanuj rynek</button><button className="navItem" onClick={()=>{setView('radar');setSection('drops');setQuery('');setMinRoi(0);setCategory('Wszystko');}}><TrendingDown/> Spadki cen</button><button className="navItem" onClick={()=>{setView('radar');setSection('watched');setQuery('');setMinRoi(0);setCategory('Wszystko');}}><Heart/> Obserwowane <i>{watched.length}</i></button><button className="navItem" onClick={()=>{setView('radar');setSection('alerts');setMinRoi(15);}}><Bell/> Alerty <i>{alertCount}</i></button><button className={view==='portfolio'?'navItem active':'navItem'} onClick={()=>{setView('portfolio');setSection('all')}}><Wallet/> Profit Lab</button></nav>
