@@ -1,0 +1,17 @@
+import { rm } from 'node:fs/promises';
+const dataDir = '/tmp/extra-szpieg-m12-smoke-' + Date.now();
+process.env.EXTRA_SZPIEG_DATA_DIR = dataDir;
+const { createMission, getMission, transitionMission, recordOutcome, storeHealth } = await import('../server/missionStore.mjs');
+const id = 'mission-m12-smoke';
+await createMission({ missionId:id, dealId:'deal-m12', sourceId:'amazon', sourceUrl:'https://example.com/m12', decision:'BUY', confidence:91, evidenceVersion:'m11.2-evidence-package-v1', decisionVersion:'m11.2-discovery-decision-bridge-v1' });
+await transitionMission(id,'APPROVED',{approvedBy:'m12-smoke'});
+await transitionMission(id,'MISSION_CREATED');
+await transitionMission(id,'EXECUTING');
+const completed = await recordOutcome(id,{outcome:'SUCCESS',realizedRoiPct:21,reason:'M12 server persistence smoke',learning:{version:'m9.8-policy-learning-v1',sampleSize:2,successRate:1}});
+if (completed.state !== 'COMPLETED' || completed.outcome !== 'SUCCESS') throw new Error('server mission lifecycle failed');
+const reloaded = await getMission(id);
+if (reloaded?.state !== 'COMPLETED' || reloaded?.learningSampleSize !== 2) throw new Error('server persistence reload failed');
+const health = await storeHealth();
+if (health.missions !== 1 || health.events < 5) throw new Error('server audit history missing');
+await rm(dataDir,{recursive:true,force:true});
+console.log('M12 SERVER PERSISTENCE SMOKE PASS');
